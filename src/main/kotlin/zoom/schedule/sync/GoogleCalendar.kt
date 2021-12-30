@@ -22,7 +22,14 @@ fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
     // создаем объект, который позволяет общаться по сети
     val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
     // аутентифицируемся в google-календаре и получаем доступы
-    val credentials = googleAuthenticate(httpTransport)
+    var credentials = googleAuthenticate(httpTransport)
+    // если ключ доступа не получен
+    if (credentials.accessToken == null) {
+        //удаляем файлы аутентификации
+        File(TOKENS_DIRECTORY_PATH).deleteRecursively()
+        // повторно аутентифицируемся
+        credentials = googleAuthenticate(httpTransport)
+    }
     // конфигурируем объект, который позволяет работать с API календаря
     val calendarApi = Calendar.Builder(httpTransport, JSON_FACTORY, credentials)
         // устанавливаем название приложения, которое будет прикрепляться к каждому запросу к API
@@ -91,13 +98,18 @@ private fun googleAuthenticate(httpTransport: NetHttpTransport): Credential {
 
 // название приложения, которое прикрепляется к каждому запросу к API календаря
 private const val APPLICATION_NAME = "uurggpu-schedule-sync"
+
 // объект, который позволяет преобразовывать объект-котлин в формат, понятный серверу и обратно
 private val JSON_FACTORY = JacksonFactory.getDefaultInstance()
+
 // папка, в которую складываются токены
 private const val TOKENS_DIRECTORY_PATH = "tokens"
+
 // к какой части API календаря нужен доступ
 private val SCOPES = listOf(CalendarScopes.CALENDAR)
+
 // путь к файлу с доступами внутри исполняемого приложения
 private const val CREDENTIALS_FILE_PATH = "/credentials.json"
+
 // часовой пояс
 private const val timeZone = "Asia/Yekaterinburg"
