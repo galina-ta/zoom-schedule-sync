@@ -58,7 +58,7 @@ fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
         e.description = """
             https://us05web.zoom.us/j/88602486982?pwd=YnJiU21ldHl2TnRINXNpRnl3ODE5Zz09
             
-            from: ${scheduleEntry.docxName}
+            from: ${scheduleEntry.docxNames.joinToString()}
         """.trimIndent() // убирает лидирующие пробелы перед блоком текста
 
         // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс

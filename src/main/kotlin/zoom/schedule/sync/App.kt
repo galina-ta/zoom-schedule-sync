@@ -35,6 +35,7 @@ fun main() {
             emptyList()
         }
     }
+    val deduplicated = deduplicate(schedule)
     // экспортируем расписание в google-календарь
-    exportInGoogleCalendar(schedule)
+    exportInGoogleCalendar(deduplicated)
 }

@@ -105,7 +105,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                                 subjectName = "${clearSubjectName(commonSubjectName)} ${row.tableCells.last().text.trim()}",
                                 // название документа, который прикрепится к этому элементу расписания
                                 // это название текущего документа
-                                docxName = docxName
+                                docxNames = listOf(docxName)
                             )
                         )
                     } else {
@@ -162,7 +162,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                                     subjectName = subjectName,
                                     // название документа, который прикрепится к этому элементу расписания
                                     // это название текущего документа
-                                    docxName = docxName
+                                    docxNames = listOf(docxName)
                                 )
                             }
                         }

@@ -108,7 +108,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                                 subjectName = commonSubjectName,
                                 // название документа, который прикрепится к этому элементу расписания
                                 // это название текущего документа
-                                docxName = docxName
+                                docxNames = listOf(docxName)
                             )
                         )
                     } else {
@@ -161,7 +161,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                                     subjectName = subjectName,
                                     // название документа, который прикрепится к этому элементу расписания
                                     // это название текущего документа
-                                    docxName = docxName
+                                    docxNames = listOf(docxName)
                                 )
                             }
                         } else {
