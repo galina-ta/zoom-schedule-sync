@@ -21,15 +21,25 @@ class ScheduleEntry(
     }
 }
 
+// преобразуем расписание с дубликатами в расписание без дубликатов
 fun deduplicate(schedule: List<ScheduleEntry>): List<ScheduleEntry> {
+    // возвращаем расписание
     return schedule
+        // элементы которого сгруппированы по времени начала
         .groupBy { entry -> entry.start }
+        // и каждый элемент сгруппированной структуры преобразован в
         .values.map { entries ->
+            // элемент расписания, у которого
             ScheduleEntry(
+                // время начала - это время начала перого элемента группы
                 start = entries.first().start,
+                //время окончания - это максимальное время окончания в группе
                 end = entries.maxOf { entry -> entry.end },
+                // название группы - это названия всех групп всех элементов группы записей календаря
                 groupNames = entries.flatMap { entry -> entry.groupNames },
+                // название дисциплины и аудитории - это названия дисциплины и аудитории первого элемента записи
                 subjectName = entries.first().subjectName,
+                //названия файлов - это названия всех файлов, из которых взяты элементы группы записей календаря
                 docxNames = entries.flatMap { entry -> entry.docxNames }
             )
         }
