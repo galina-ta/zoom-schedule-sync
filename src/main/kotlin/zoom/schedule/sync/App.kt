@@ -2,14 +2,13 @@ package zoom.schedule.sync
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
-import java.lang.RuntimeException
 
 // определяем входную точку
 fun main() {
     // указываем путь к файлам
-    val dir = File("C:\\Users\\1255865\\Documents\\кафедра\\Расписание")
+    val usualDir = File("C:\\Users\\1255865\\Documents\\кафедра\\Расписание")
     // преобразуем список файлов в плоский список элементов расписания (в общее расписание)
-    val schedule = dir.listFiles().flatMap { docxFile ->
+    val usualSchedule = usualDir.listFiles().flatMap { docxFile ->
         // если текущий файл не папка
         if (!docxFile.isDirectory) {
             // получаем документв формате библиотеки poi, передав ей возможность считать содержание файла
@@ -35,8 +34,13 @@ fun main() {
             emptyList()
         }
     }
+    val sessionDir = File(usualDir, "сессия ОФ")
+    val sessionSchedule = sessionDir.listFiles().flatMap { docxFile ->
+        val document = XWPFDocument(docxFile.inputStream())
+        parseFullSession(document, docxName = docxFile.name)
+    }
     // получение расписания без дублирования
-    val deduplicated = deduplicate(schedule)
+    val deduplicatedUsual = deduplicate(usualSchedule)
     // экспортируем расписание в google-календарь
-    exportInGoogleCalendar(deduplicated)
+    exportInGoogleCalendar(deduplicatedUsual + sessionSchedule)
 }
