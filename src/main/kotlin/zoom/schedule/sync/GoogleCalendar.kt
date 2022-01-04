@@ -5,17 +5,23 @@ import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInsta
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
+import com.google.api.client.googleapis.batch.BatchRequest
+import com.google.api.client.googleapis.batch.json.JsonBatchCallback
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.googleapis.json.GoogleJsonError
+import com.google.api.client.http.HttpHeaders
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.calendar.Calendar
+import com.google.api.services.calendar.CalendarRequest
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
 import java.io.File
 import java.io.InputStreamReader
+
 
 // экспортировать в google-календарь
 fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
@@ -41,10 +47,13 @@ fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
     val calendarId = "primary"
     // конфигурируем запрос на список событий (до 99999 штук) и запускаем его
     val events = calendarApi.events().list(calendarId).setMaxResults(99999).execute()
+    val batch = calendarApi.batch()
     // для каждого полученного события
     events.items.forEach { event ->
         // составляем запрос на удаление этого события
-        calendarApi.events().delete(calendarId, event.id).execute()
+        calendarApi.events().delete(calendarId, event.id).queue(batch) {
+            // событие удалилось
+        }
     }
     // для каждого элемента расписания
     schedule.forEach { scheduleEntry ->
@@ -70,8 +79,11 @@ fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
             .setDateTime(DateTime(scheduleEntry.end))
             .setTimeZone(timeZone)
         // составляем запрос на добавление события в календарь
-        calendarApi.events().insert(calendarId, e).execute()
+        calendarApi.events().insert(calendarId, e).queue(batch){
+            // событие добавилось
+        }
     }
+    batch.execute()
 }
 
 // аутентифицироваться в google-календаре
@@ -113,3 +125,16 @@ private const val CREDENTIALS_FILE_PATH = "/credentials.json"
 
 // часовой пояс
 private const val timeZone = "Asia/Yekaterinburg"
+
+private fun <T> CalendarRequest<T>.queue(batch: BatchRequest, action: (T) -> Unit) {
+    queue(batch, object : JsonBatchCallback<T>() {
+
+        override fun onFailure(e: GoogleJsonError, responseHeaders: HttpHeaders) {
+            println("Error Message: " + e.message)
+        }
+
+        override fun onSuccess(t: T, responseHeaders: HttpHeaders?) {
+            action(t)
+        }
+    })
+}
