@@ -25,7 +25,7 @@ dependencies {
 }
 
 application {
-    mainClassName = "zoom.schedule.sync.AppKt"
+    mainClassName = "cspu.documents.AppKt"
 }
 
 tasks.getByName("run") {

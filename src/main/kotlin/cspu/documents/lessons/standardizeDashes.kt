@@ -1,4 +1,4 @@
-package zoom.schedule.sync
+package cspu.documents.lessons
 
 // приводим все черточки в тексте к стандартному виду
 fun standardizeDashes(text: String): String {

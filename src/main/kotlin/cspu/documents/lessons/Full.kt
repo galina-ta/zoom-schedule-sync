@@ -1,10 +1,10 @@
-package zoom.schedule.sync
+package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.text.SimpleDateFormat
 
 // разобрать документ с расписанием очного отделения
-fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
+fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
     // преобразовать список таблиц докуентов в плоский список элементов расписания
     return document.tables.flatMap { table ->
         // преобразовать список ячеек первой строки таблицы в список групп
@@ -90,11 +90,11 @@ fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                     groups[0].cellWidth < commonSubjectCellWidth && groups[1].cellWidth < commonSubjectCellWidth
                 ) {
                     // если текст последней ячейки содержит мою фамилию и инициалы
-                    if (isMe(text = commonSubjectName)) {
+                    if (containsMyNameShort(text = commonSubjectName)) {
                         // возвращаем список из одного элемента расписания,
                         // чтобы добавился от этой строки в общий список текущего документа
                         listOf(
-                            ScheduleEntry(
+                            Lesson(
                                 // время начала этого элемента расписания разбираем по формату
                                 start = format.parse(formattedStart),
                                 // время конца этого элемента расписания разбираем по формату
@@ -114,7 +114,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                     }
                 } else {
                     // если в строке хотя бы одна ячейка с моей фамилией иинициалами
-                    if (row.tableCells.any { cell -> isMe(cell.text) }) {
+                    if (row.tableCells.any { cell -> containsMyNameShort(cell.text) }) {
                         groups.flatMap { group ->
                             // список названий дисциплин - это изначально пустой изменяемый список
                             val subjectNames = mutableListOf<String>()
@@ -132,7 +132,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                                 // без пробельных символов в начале и конце
                                 val subjectName = currentCell.text.trim()
                                 // если моя фамилия и инициалы содержится в названии дисциплины
-                                if (isMe(subjectName)) {
+                                if (containsMyNameShort(subjectName)) {
                                     // в списке ячеек текущей строки, начиная с текущей позиции "каретки"
                                     val roomName = row.tableCells.drop(currentCellIndex)
                                         // ищем первую ячейку (если есть) с текстом, состоящим не только из пробельных символов
@@ -151,7 +151,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                             }
                             subjectNames.map { subjectName ->
                                 // создаем элемент расписания
-                                ScheduleEntry(
+                                Lesson(
                                     // время начала этого элемента расписания разбираем по формату
                                     start = format.parse(formattedStart),
                                     // время конца этого элемента расписания разбираем по формату

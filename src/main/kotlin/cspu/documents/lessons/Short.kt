@@ -1,10 +1,10 @@
-package zoom.schedule.sync
+package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.text.SimpleDateFormat
 
 // разобрать документ с расписанием заочного отделения
-fun parseShort(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
+fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
     // преобразовать список таблиц докуента в плоский список элементов расписания
     return document.tables.flatMap { table ->
         // преобразовать список ячеек первой строки таблицы в список групп
@@ -79,7 +79,9 @@ fun parseShort(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
             }
 
             // если все ячейки строки, кроме первых трех и последней не пустые
-            if (row.tableCells.drop(3).dropLast(1).all { cell -> cell.text.isBlank() }) {
+            if (row.tableCells.drop(3).dropLast(1).all { cell -> cell.text.isBlank() }
+                // или если все ячейки строки не содержат мою фамилию и инициалы
+                || row.tableCells.all { cell -> !containsMyNameShort(cell.text) }) {
                 // то не добавляем элементы расписания из этой строки
                 emptyList()
             } else {
@@ -93,11 +95,11 @@ fun parseShort(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                     groups[1].cellWidth < commonSubjectCellWidth
                 ) {
                     // если текст последней ячейки содержит мою фамилию и инициалы
-                    if (isMe(text = row.tableCells.last().text)) {
+                    if (containsMyNameShort(text = row.tableCells.last().text)) {
                         // возвращаем список из одного элемента расписания,
                         // чтобы добавился от этой строки в общий список текущего документа
                         listOf(
-                            ScheduleEntry(
+                            Lesson(
                                 // время начала этого элемента расписания разбираем по формату
                                 start = format.parse(formattedStart),
                                 // время конца этого элемента расписания разбираем по формату
@@ -146,11 +148,11 @@ fun parseShort(document: XWPFDocument, docxName: String): List<ScheduleEntry> {
                         // перевести "каретку" в следующую ячейку
                         currentCellIndex += 1
                         // если мое имя в ячейке с преподом
-                        if (isMe(text = teacherRaw)) {
+                        if (containsMyNameShort(text = teacherRaw)) {
                             // преобразуем список дисциплин в список элементов расписания
                             subjectNames.map { subjectName ->
                                 // создаем элемент расписания
-                                ScheduleEntry(
+                                Lesson(
                                     // время начала этого элемента расписания разбираем по формату
                                     start = format.parse(formattedStart),
                                     // время конца этого элемента расписания разбираем по формату

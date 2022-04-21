@@ -1,4 +1,4 @@
-package zoom.schedule.sync
+package cspu.documents.lessons
 
 // описание группы
 class Group(

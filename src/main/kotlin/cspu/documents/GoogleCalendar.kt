@@ -1,4 +1,4 @@
-package zoom.schedule.sync
+package cspu.documents.lessons
 
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
@@ -19,12 +19,13 @@ import com.google.api.services.calendar.CalendarRequest
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
+import cspu.documents.practice.Practice
 import java.io.File
 import java.io.InputStreamReader
 
 
 // экспортировать в google-календарь
-fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
+fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
     // создаем объект, который позволяет общаться по сети
     val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
     // аутентифицируемся в google-календаре и получаем доступы
@@ -43,43 +44,91 @@ fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
         // создаем объект
         .build()
 
+    val batch = calendarApi.batch()
     // запоминаем идентификатор основного календаря на аккаунте
     val calendarId = "primary"
-    // конфигурируем запрос на список событий (до 99999 штук) и запускаем его
-    val events = calendarApi.events().list(calendarId).setMaxResults(99999).execute()
-    val batch = calendarApi.batch()
-    // для каждого полученного события
-    events.items.forEach { event ->
-        // составляем запрос на удаление этого события
-        calendarApi.events().delete(calendarId, event.id).queue(batch) {
-            // событие удалилось
-        }
-    }
+    calendarApi.calendars().clear(calendarId).execute()
     // для каждого элемента расписания
-    schedule.forEach { scheduleEntry ->
+    lessons.forEach { lesson ->
         // создаем событие
         val e = Event()
         // форматируем список групп, разделяя все его элементы пробелом
-        val formattedGroupNames = scheduleEntry.groupNames.joinToString(separator = " ")
+        val formattedGroupNames = lesson.groupNames.joinToString(separator = " ")
         // записываем в короткое описание названия дисциплины и отформатированное название группы через пробел
-        e.summary = "${scheduleEntry.subjectName} $formattedGroupNames"
+        e.summary = "${lesson.subjectName} $formattedGroupNames"
         // в подробное описание добавляем ссылку zoom  и из какого документа был взят этот элемент расписания
         e.description = """
             https://us05web.zoom.us/j/88602486982?pwd=YnJiU21ldHl2TnRINXNpRnl3ODE5Zz09
             
-            from: ${scheduleEntry.docxNames.joinToString()}
+            from: ${lesson.docxNames.joinToString()}
         """.trimIndent() // убирает лидирующие пробелы перед блоком текста
 
         // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
         e.start = EventDateTime()
-            .setDateTime(DateTime(scheduleEntry.start))
+            .setDateTime(DateTime(lesson.start))
             .setTimeZone(timeZone)
         // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
         e.end = EventDateTime()
-            .setDateTime(DateTime(scheduleEntry.end))
+            .setDateTime(DateTime(lesson.end))
             .setTimeZone(timeZone)
         // составляем запрос на добавление события в календарь
-        calendarApi.events().insert(calendarId, e).queue(batch){
+        calendarApi.events().insert(calendarId, e).queue(batch) {
+            // событие добавилось
+        }
+    }
+    practices.forEach { practice ->
+        // создаем событие
+        val practiceEvent = Event()
+        // форматируем список групп, разделяя все его элементы пробелом
+        //val formattedGroupNames = practice.groupNames.joinToString(separator = " ")
+        // записываем короткое описание названия
+        practiceEvent.summary = "Практика ${practice.name}"
+
+        val formattedGroups = practice.studentsByGroupName.entries
+            .joinToString(separator = "\n\n") { entry ->
+                val groupName = entry.key
+                val studentNames = entry.value
+                val formattedStudents = studentNames
+                    .mapIndexed { index, studentName -> "${index + 1}. $studentName" }
+                    .joinToString(separator = "\n")
+                "$groupName\n$formattedStudents"
+            }
+        // в подробное описание ...расписания
+        practiceEvent.description = "$formattedGroups\n\nfrom: ${practice.docxName}"
+        // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
+        practiceEvent.start = EventDateTime()
+            .setDateTime(DateTime(practice.start))
+            .setTimeZone(timeZone)
+        // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
+        practiceEvent.end = EventDateTime()
+            .setDateTime(DateTime(practice.end))
+            .setTimeZone(timeZone)
+        // составляем запрос на добавление события в календарь
+        calendarApi.events().insert(calendarId, practiceEvent).queue(batch) {
+            // событие добавилось
+        }
+        val checkEndEvent = Event()
+        checkEndEvent.summary = "срок сдачи практики ${practice.name}"
+        // в подробное описание ...расписания
+        checkEndEvent.description = "$formattedGroups\n\nfrom: ${practice.docxName}"
+        // устанавливаем время начала срока сдачи практики
+        val checkStartCalendar = java.util.Calendar.getInstance()
+        checkStartCalendar.time = practice.checkEnd
+        checkStartCalendar.set(java.util.Calendar.HOUR, 12)
+        // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
+        checkEndEvent.start = EventDateTime()
+            .setDateTime(DateTime(checkStartCalendar.time))
+            .setTimeZone(timeZone)
+        // устанавливаем время конца срока сдачи практики
+        val checkEndCalendar = java.util.Calendar.getInstance()
+        checkEndCalendar.time = practice.checkEnd
+        checkEndCalendar.set(java.util.Calendar.HOUR, 12)
+        checkEndCalendar.set(java.util.Calendar.MINUTE, 30)
+        // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
+        checkEndEvent.end = EventDateTime()
+            .setDateTime(DateTime(checkEndCalendar.time))
+            .setTimeZone(timeZone)
+        calendarApi.events().insert(calendarId, checkEndEvent).queue(batch) {
             // событие добавилось
         }
     }
@@ -89,7 +138,7 @@ fun exportInGoogleCalendar(schedule: List<ScheduleEntry>) {
 // аутентифицироваться в google-календаре
 private fun googleAuthenticate(httpTransport: NetHttpTransport): Credential {
     // получаем возможность считать файл с доступами из запускаемого файла программы
-    val inputStream = ScheduleEntry::class.java.getResourceAsStream(CREDENTIALS_FILE_PATH)
+    val inputStream = Lesson::class.java.getResourceAsStream(CREDENTIALS_FILE_PATH)
     // считываем доступы в объект
     val clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, InputStreamReader(inputStream))
 

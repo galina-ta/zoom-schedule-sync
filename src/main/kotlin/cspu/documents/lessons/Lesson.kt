@@ -1,9 +1,9 @@
-package zoom.schedule.sync
+package cspu.documents.lessons
 
 import java.util.*
 
 // описание записи в календаре
-class ScheduleEntry(
+class Lesson(
     // начало занятия
     val start: Date,
     // конец занятия
@@ -22,15 +22,15 @@ class ScheduleEntry(
 }
 
 // преобразуем расписание с дубликатами в расписание без дубликатов
-fun deduplicate(schedule: List<ScheduleEntry>): List<ScheduleEntry> {
+fun deduplicate(lessons: List<Lesson>): List<Lesson> {
     // возвращаем расписание
-    return schedule
+    return lessons
         // элементы которого сгруппированы по времени начала
         .groupBy { entry -> entry.start }
         // и каждый элемент сгруппированной структуры преобразован в
         .values.map { entries ->
             // элемент расписания, у которого
-            ScheduleEntry(
+            Lesson(
                 // время начала - это время начала перого элемента группы
                 start = entries.first().start,
                 //время окончания - это максимальное время окончания в группе
