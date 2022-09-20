@@ -10,13 +10,14 @@ import java.io.File
 fun main() {
     // указываем путь к файлам
     val asuDir = File("C:\\Users\\1255865\\Documents\\кафедра\\АСУ_Галина")
+    val brsTemplateFile = File(asuDir, "БРС_шаблон.xlsm")
     val lessonsDir = File(asuDir, "Аудиторные")
     val sessionDir = File(lessonsDir, "Сессия ОФ")
     val lessons = loadLessons(lessonsDir, sessionDir)
     val practicesDir = File(asuDir, "Практика")
     val practices = loadPractices(practicesDir)
     practices.forEach { practice ->
-        generatePractice(practice)
+        generatePractice(practice, brsTemplateFile)
     }
     // экспортируем расписание в google-календарь
     exportInGoogleCalendar(lessons, practices)
