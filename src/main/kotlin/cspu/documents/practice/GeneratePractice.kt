@@ -1,32 +1,11 @@
 package cspu.documents.practice
 
+import cspu.documents.brs.generateBrs
 import org.apache.poi.ss.usermodel.CellStyle
 import org.apache.poi.ss.util.CellUtil
-import org.apache.poi.xssf.usermodel.XSSFFont
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 import java.text.SimpleDateFormat
-
-private val practicesByNumber = mapOf(
-    "20" to "Производственная практика по получению профессиональных умений и опыта профессиональной деятельности (психолого-педагогическое сопровождение профессионального образования и обучения)",
-    "21" to "Производственная практика (педагогическая)",
-    "24" to "Производственная практика (педдипломная)",
-    "25" to "Учебная практика (введение в профессию)",
-    "26" to "Учебная практика (научно-исследовательская работа (получение первичных навыков научно-исследовательской работы))",
-    "32" to "Учебная практика (научно-исследовательская работа (получение первичных навыков научно-исследовательской работы))",
-    "29" to "Производственная практика (психолого-педагогическая)",
-    "30" to "Производственная практика (технологическая (проектно-технологическая) по проектированию и организации деятельности психолого-педагогического направления)",
-    "31" to "Производственная практика (технологическая (проектно-технологическая) по проектированию и организации деятельности психолого-педагогического направления)",
-    "33" to "Производственная практика (научно-исследовательская работа по психолого-педагогическому сопровождению)",
-    "34" to "Учебная практика (введение в профессию)",
-    "36" to "Производственная практика (преддипломная)",
-    "39" to "Производственная практика (научно-исследовательская работа)",
-    "40" to "Практика по получению профессиональных умений и опыта профессиональной деятельности (социально-педагогическая деятельность)",
-    "42" to "Производственная практика (научно-исследовательская работа по психолого-педагогическому сопровождению)",
-    "2" to "Производственная практика (педагогическая)",
-    "5" to "Производственная практика (научно-исследовательская работа по профильной подготовке)",
-    "6" to "Учебная практика (технологическая (проектно-технологическая) по профильной подготовке)"
-)
 
 private fun getProfile(groupName: String): String {
     return when {
@@ -51,14 +30,7 @@ private fun getProfile(groupName: String): String {
     }
 }
 
-fun generatePractice(practice: Practice, brsTemplateFile: File) {
-    val practiceNumber = practice.dir.name.substringBefore(" ")
-    val practiceName = practicesByNumber[practiceNumber]!!
-    val leoTemplateFile = practice.dir.listFiles().find { file ->
-        // имеет расширение xlsx
-        file.extension == "xlsx"
-        // если функция вернула null, то завершить программу с ошибкой
-    }!!
+fun generatePractice(practice: Practice, brsTemplateFile: File, leoTemplateFile: File) {
     //в папке практики формируем папку, в которой будут храниться сгенерированные файлы
     val generatedDir = File(practice.dir, "Сгенерированное")
     // удаление папки перед генерацией
@@ -66,47 +38,14 @@ fun generatePractice(practice: Practice, brsTemplateFile: File) {
     //создает все элеиенты дерева папок, которые еще не созданы
     generatedDir.mkdirs()
     // для каждой группы генерируем на основе шаблона БРС
-    practice.studentsByGroupName.onEach { group ->
+    practice.ratingByGroupName.onEach { group ->
         val groupName = group.key
-        val studentNames = group.value
-        //  загружаем из файла книгу excel
-        val brsWorkbook = XSSFWorkbook(brsTemplateFile.inputStream())
-        // получаем таблицу из книги
-        val brsSheet = brsWorkbook.getSheetAt(0)
-        // заполняем ячейку с названием практики
-        brsSheet.getRow(0).getCell(2).setCellValue(practiceName)
-        // заполняем ячейку с номером группы
-        brsSheet.getRow(1).getCell(2).setCellValue(groupName)
-        //определяем строку заданий
-        val tasksRow = brsSheet.getRow(7)
-        // для каждого типа заданий из РПП с его индексом
-        practice.rpp.taskTypes.forEachIndexed { index, taskType ->
-            // получаем ячейку с индексом типа задания +2 из строки заданий
-            // и записываем в  нее тип задания
-            val cell = tasksRow.getCell(2 + index)
-            cell.setCellValue(taskType)
-            cell.cellStyle.wrapText = true
-            cell.cellStyle.font.boldweight = XSSFFont.BOLDWEIGHT_NORMAL
-        }
-        // в разделе вариативной части БРС формируем название ячейки с индивидуальными заданиями
-        brsSheet.getRow(7).getCell(10).setCellValue("Индивидуальные задания")
-        //заполняем список студентов в БРС
-        studentNames.forEachIndexed { index, student ->
-            val cell = brsSheet.getRow(10 + index).getCell(1)
-            cell.setCellValue(student)
-            cell.cellStyle.wrapText = true
-        }
-        CellUtil.getCell(brsSheet.getRow(42), 12).setCellValue("Терехова Г.В.")
+        val rating = group.value
         //формируем название БРС по группе
         val brsFile = File(generatedDir, "${groupName.replace("/", "-")} БРС.xlsm")
-        if (!brsFile.exists()) {
-            brsFile.createNewFile()
-        }
+        generateBrs(rating, brsTemplateFile, brsFile)
         //
-        brsWorkbook.write(brsFile.outputStream())
-        brsWorkbook.close()
-        //
-        studentNames.forEach { studentName ->
+        rating.studentNames.forEach { studentName ->
             val leoWorkbook = XSSFWorkbook(leoTemplateFile.inputStream())
             // получаем таблицу из книги
             val leoSheet = leoWorkbook.getSheetAt(0)
@@ -138,7 +77,7 @@ fun generatePractice(practice: Practice, brsTemplateFile: File) {
             nameCell.cellStyle.wrapText = true
             // заполняем ячейку с названием и сроками практики
             nameCell.setCellValue(
-                "ЛЭО результатов обучающего $practiceName с ${format.format(practice.start)} по ${
+                "ЛЭО результатов обучающего ${rating.name} с ${format.format(practice.start)} по ${
                     format.format(practice.end)
                 }"
             )

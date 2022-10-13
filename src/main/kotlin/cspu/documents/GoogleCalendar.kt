@@ -82,13 +82,13 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         // форматируем список групп, разделяя все его элементы пробелом
         //val formattedGroupNames = practice.groupNames.joinToString(separator = " ")
         // записываем короткое описание названия
-        practiceEvent.summary = "Практика ${practice.name}"
+        practiceEvent.summary = "Практика ${practice.title}"
 
-        val formattedGroups = practice.studentsByGroupName.entries
+        val formattedGroups = practice.ratingByGroupName.entries
             .joinToString(separator = "\n\n") { entry ->
                 val groupName = entry.key
-                val studentNames = entry.value
-                val formattedStudents = studentNames
+                val rating = entry.value
+                val formattedStudents = rating.studentNames
                     .mapIndexed { index, studentName -> "${index + 1}. $studentName" }
                     .joinToString(separator = "\n")
                 "$groupName\n$formattedStudents"
@@ -108,7 +108,7 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
             // событие добавилось
         }
         val checkEndEvent = Event()
-        checkEndEvent.summary = "срок сдачи практики ${practice.name}"
+        checkEndEvent.summary = "срок сдачи практики ${practice.title}"
         // в подробное описание ...расписания
         checkEndEvent.description = "$formattedGroups\n\nfrom: ${practice.docxName}"
         // устанавливаем время начала срока сдачи практики

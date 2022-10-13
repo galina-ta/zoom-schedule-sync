@@ -1,11 +1,34 @@
 package cspu.documents.practice
 
+import cspu.documents.brs.Rating
 import cspu.documents.lessons.containsMyName
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.apache.poi.xwpf.usermodel.XWPFTable
 import java.io.File
 import java.text.SimpleDateFormat
+
+private val practicesByNumber = mapOf(
+    "20" to "Производственная практика по получению профессиональных умений и опыта профессиональной деятельности (психолого-педагогическое сопровождение профессионального образования и обучения)",
+    "21" to "Производственная практика (педагогическая)",
+    "24" to "Производственная практика (педдипломная)",
+    "25" to "Учебная практика (введение в профессию)",
+    "26" to "Учебная практика (научно-исследовательская работа (получение первичных навыков научно-исследовательской работы))",
+    "32" to "Учебная практика (научно-исследовательская работа (получение первичных навыков научно-исследовательской работы))",
+    "29" to "Производственная практика (психолого-педагогическая)",
+    "30" to "Производственная практика (технологическая (проектно-технологическая) по проектированию и организации деятельности психолого-педагогического направления)",
+    "31" to "Производственная практика (технологическая (проектно-технологическая) по проектированию и организации деятельности психолого-педагогического направления)",
+    "33" to "Производственная практика (научно-исследовательская работа по психолого-педагогическому сопровождению)",
+    "34" to "Учебная практика (введение в профессию)",
+    "36" to "Производственная практика (преддипломная)",
+    "39" to "Производственная практика (научно-исследовательская работа)",
+    "40" to "Практика по получению профессиональных умений и опыта профессиональной деятельности (социально-педагогическая деятельность)",
+    "42" to "Производственная практика (научно-исследовательская работа по психолого-педагогическому сопровождению)",
+    "2" to "Производственная практика (педагогическая)",
+    "5" to "Производственная практика (научно-исследовательская работа по профильной подготовке)",
+    "6" to "Учебная практика (технологическая (проектно-технологическая) по профильной подготовке)",
+    "8" to "Учебная практика (психолого-педагогическое сопровождение профессионального образования и обучения)"
+)
 
 //
 fun loadPractices(dir: File): List<Practice> {
@@ -23,6 +46,7 @@ fun loadPractices(dir: File): List<Practice> {
                 // имеет расширение docx и не содержит в названии документа РПП
                 file.extension == "docx" && file.name.contains("РПП")
             }!!
+            val rpp = loadRpp(docxFile = rppDocxFile)
             // получаем документ в формате библиотеки poi, передав ей возможность считать содержание файла
             val document = XWPFDocument(orderDocxFile.inputStream())
             //среди параграфов документов выбираем
@@ -49,8 +73,10 @@ fun loadPractices(dir: File): List<Practice> {
             val formattedCheckEnd = checkEndParagraph
                 .substringAfterLast("до")
                 .trim { c -> c.isWhitespace() || c == '.' }
-            // формируем список студентов
-            val studentsByGroupName = document.bodyElements.mapIndexedNotNull { index, element ->
+            val practiceNumber = practiceDir.name.substringBefore(" ")
+            val practiceName = practicesByNumber[practiceNumber]!!
+            // формируем рейтинги студентов
+            val ratingByGroupName = document.bodyElements.mapIndexedNotNull { index, element ->
                 // если элемент документа
                 if (element is XWPFParagraph) {
                     // определяем название группы
@@ -70,7 +96,7 @@ fun loadPractices(dir: File): List<Practice> {
                             }
                         } //если список не пустой...
                         if (studentsNames.isNotEmpty()) {
-                            groupName to studentsNames
+                            groupName to Rating(groupName, studentsNames, practiceName, rpp.taskTypes)
                             // иначе ничего не добавлять
                         } else {
                             null
@@ -92,15 +118,13 @@ fun loadPractices(dir: File): List<Practice> {
                 end = format.parse(formattedEnd),
                 // срок сдачи практики
                 checkEnd = format.parse(formattedCheckEnd),
-                // список студентов группы
-                studentsByGroupName = studentsByGroupName,
-                //описание...
-                docxName = orderDocxFile.name,
-                // название файла, из которого берем информацию
-                name = orderDocxFile.nameWithoutExtension
+                title = orderDocxFile.nameWithoutExtension
                     .substringBefore("проект").trim(),
+                // название файла, из которого берем информацию
+                docxName = orderDocxFile.name,
                 // формируем название из названия документа, очищенного
-                rpp = loadRpp(docxFile = rppDocxFile),
+                rpp = rpp,
+                ratingByGroupName = ratingByGroupName,
                 dir = practiceDir
             )
         }
