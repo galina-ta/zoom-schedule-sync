@@ -96,7 +96,14 @@ fun loadPractices(dir: File): List<Practice> {
                             }
                         } //если список не пустой...
                         if (studentsNames.isNotEmpty()) {
-                            groupName to Rating(groupName, studentsNames, practiceName, rpp.taskTypes)
+                            groupName to Rating(
+                                groupName,
+                                studentsNames,
+                                practiceName,
+                                rpp.taskTypes,
+                                variationTaskType = "Индивидуальные задания",
+                                customFinalTaskName = null
+                            )
                             // иначе ничего не добавлять
                         } else {
                             null

@@ -26,7 +26,19 @@ fun generateBrs(rating: Rating, brsTemplateFile: File, brsFile: File) {
         cell.cellStyle.font.boldweight = XSSFFont.BOLDWEIGHT_NORMAL
     }
     // в разделе вариативной части БРС формируем название ячейки с индивидуальными заданиями
-    brsSheet.getRow(7).getCell(10).setCellValue("Индивидуальные задания")
+    tasksRow.getCell(10).setCellValue(rating.variationTaskType)
+    if (rating.customFinalTaskName != null) {
+        for (rowIndex in 6..7) {
+            val finalTaskNamesRow = brsSheet.getRow(rowIndex)
+            finalTaskNamesRow.getCell(21).setCellValue(rating.customFinalTaskName)
+            finalTaskNamesRow.getCell(22).setCellValue("")
+            finalTaskNamesRow.getCell(23).setCellValue("")
+        }
+        val finalTaskRatesRow = brsSheet.getRow(9)
+        finalTaskRatesRow.getCell(21).setCellValue("")
+        finalTaskRatesRow.getCell(22).setCellValue("")
+        finalTaskRatesRow.getCell(23).setCellValue("")
+    }
     //заполняем список студентов в БРС
     rating.studentNames.forEachIndexed { index, student ->
         val cell = brsSheet.getRow(10 + index).getCell(1)
