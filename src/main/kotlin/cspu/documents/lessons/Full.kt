@@ -123,7 +123,12 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
                             // пока эта ширина меньше ширины ячейки текущей группы
                             while (currentSubjectCellsWidth < group.cellWidth) {
                                 // текущая ячейка - это та ячейка, на которую указывает "каретка"
-                                val currentCell = row.tableCells[currentCellIndex]
+                                val currentCell = row.tableCells.getOrNull(currentCellIndex)
+                                //если текущая ячейка отстутствует
+                                if (currentCell == null) {
+                                    // прекращаем работу с текущей парой текущей группы
+                                    break
+                                }
                                 // добавить к ширине ячеек групп ширину текущей ячейки
                                 currentSubjectCellsWidth += cellWidth(cell = currentCell)
                                 // перевести "каретку" в следующую ячейку
