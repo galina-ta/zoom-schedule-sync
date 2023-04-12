@@ -1,6 +1,8 @@
 package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
+import org.apache.poi.xwpf.usermodel.XWPFTable
+import org.apache.poi.xwpf.usermodel.XWPFTableRow
 import java.text.SimpleDateFormat
 
 // разобрать документ с расписанием очного отделения
@@ -8,20 +10,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
     // преобразовать список таблиц докуентов в плоский список элементов расписания
     return document.tables.flatMap { table ->
         // преобразовать список ячеек первой строки таблицы в список групп
-        val groups = table.rows[0].tableCells.mapNotNull { cell ->
-            // если текст ячейки является названием группы, то создать и добавить в список группу
-            if (isGroupName(text = cell.text)) {
-                // у которой имя это текст текущей ячейки без пробельных символов в начале и конце
-                Group(
-                    name = cell.text.trim(),
-                    // ширина ячейки является шириной текущей ячейки
-                    cellWidth = cellWidth(cell)
-                )
-            } else {
-                // иначе ничего не добавлять
-                null
-            }
-        }
+        val groups = parseGroups(table)
         // текущая дата по умолчанию не задана
         var currentDay: String? = null
         // преобразовать список строк таблицы в плоский список элементов расписания
@@ -48,33 +37,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
             // устанавливаем "каретку" на ячейку с индеком 2
             var currentCellIndex = 2
 
-            // название дисциплины потоковой пары изначально не определено
-            var commonSubjectName: String? = null
-            // ширина ячейки общей пары изначально равно 0 (не посчитано)
-            var commonSubjectCellWidth = 0
-            // для каждой ячейки текущей строки, кроме первых двух
-            for (cell in row.tableCells.drop(2)) {
-                // название дисциплины - это текст текущей ячейки без пробелов в начале и конце
-                val subjectName = cell.text.trim()
-                // если название дисциплины не пустое
-                if (subjectName.isNotEmpty()) {
-                    // если название дисциплины уже найдено
-                    if (commonSubjectName != null) {
-                        // прерываем поиск поточной пары
-                        break
-                    }
-                    // иначе название дисциплины общей пары - это название дисциплины
-                    commonSubjectName = subjectName
-                    // получаем ширину ячейки
-                    val cellWidth = cellWidth(cell)
-                    // ищем максимальную ширину ячейки в строке:
-                    // если текущая ширина ячейки общей пары меньше ширины текущей ячейки
-                    if (commonSubjectCellWidth < cellWidth) {
-                        // устанавливаем, что ширина общей пары равна ширине текущей ячейки
-                        commonSubjectCellWidth = cellWidth
-                    }
-                }
-            }
+            val commonSubject = findCommonSubject(row)
 
             // если все ячейки строки, кроме первых трех и последней не пустые
             if (row.tableCells.drop(2).dropLast(1).all { cell -> cell.text.isBlank() }) {
@@ -84,13 +47,13 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
                 // если количество групп равно двум и
                 if (groups.size == 2 &&
                     // название потоковой дисциплины определено и
-                    commonSubjectName != null &&
+                    commonSubject!= null &&
                     // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
                     // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
-                    groups[0].cellWidth < commonSubjectCellWidth && groups[1].cellWidth < commonSubjectCellWidth
+                    groups[0].cellWidth < commonSubject.cellWidth && groups[1].cellWidth < commonSubject.cellWidth
                 ) {
                     // если текст последней ячейки содержит мою фамилию и инициалы
-                    if (containsMyNameShort(text = commonSubjectName)) {
+                    if (containsMyNameShort(text = commonSubject.name)) {
                         // возвращаем список из одного элемента расписания,
                         // чтобы добавился от этой строки в общий список текущего документа
                         listOf(
@@ -102,7 +65,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
                                 // список названий групп - это имена с индексом 0 и 1
                                 groupNames = listOf(groups[0].name, groups[1].name),
                                 // название дисциплины это название поточной дисциплины
-                                subjectName = "${clearSubjectName(commonSubjectName)} ${row.tableCells.last().text.trim()}",
+                                subjectName = "${clearSubjectName(commonSubject.name)} ${row.tableCells.last().text.trim()}",
                                 // название документа, который прикрепится к этому элементу расписания
                                 // это название текущего документа
                                 docxNames = listOf(docxName)
@@ -180,6 +143,65 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
         }
     }
 }
+
+private fun parseGroups(table: XWPFTable): List<Group> {
+    return table.rows[0].tableCells.mapNotNull { cell ->
+        // если текст ячейки является названием группы, то создать и добавить в список группу
+        if (isGroupName(text = cell.text)) {
+            // у которой имя это текст текущей ячейки без пробельных символов в начале и конце
+            Group(
+                name = cell.text.trim(),
+                // ширина ячейки является шириной текущей ячейки
+                cellWidth = cellWidth(cell)
+            )
+        } else {
+            // иначе ничего не добавлять
+            null
+        }
+    }
+}
+
+private fun findCommonSubject(row: XWPFTableRow): CommonSubject? {
+// название дисциплины потоковой пары изначально не определено
+    var commonSubjectName: String? = null
+// ширина ячейки общей пары изначально равно 0 (не посчитано)
+    var commonSubjectCellWidth = 0
+// для каждой ячейки текущей строки, кроме первых двух
+    for (cell in row.tableCells.drop(2)) {
+        // название дисциплины - это текст текущей ячейки без пробелов в начале и конце
+        val subjectName = cell.text.trim()
+        // если название дисциплины не пустое
+        if (subjectName.isNotEmpty()) {
+            // если название дисциплины уже найдено
+            if (commonSubjectName != null) {
+                // прерываем поиск поточной пары
+                break
+            }
+            // иначе название дисциплины общей пары - это название дисциплины
+            commonSubjectName = subjectName
+            // получаем ширину ячейки
+            val cellWidth = cellWidth(cell)
+            // ищем максимальную ширину ячейки в строке:
+            // если текущая ширина ячейки общей пары меньше ширины текущей ячейки
+            if (commonSubjectCellWidth < cellWidth) {
+                // устанавливаем, что ширина общей пары равна ширине текущей ячейки
+                commonSubjectCellWidth = cellWidth
+            }
+        }
+    }
+    if (commonSubjectName != null) {
+        return CommonSubject(name = commonSubjectName, cellWidth = commonSubjectCellWidth)
+    } else {
+        return null
+    }
+}
+
+private class CommonSubject(
+// название дисциплины потоковой пары изначально не определено
+    val name: String,
+// ширина ячейки общей пары изначально равно 0 (не посчитано)
+    val cellWidth: Int
+)
 
 // очистить название дисциплины
 private fun clearSubjectName(subjectName: String): String {
