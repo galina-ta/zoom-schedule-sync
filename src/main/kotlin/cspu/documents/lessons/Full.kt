@@ -12,7 +12,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
         // преобразовать список ячеек первой строки таблицы в список групп
         val groups = parseGroups(table)
         // разобрать рабочие дни и получить список пар
-        parseWorkDays(table.rows, docxName, groups)
+        parseLessons(table.rows, docxName, groups)
     }
 }
 
@@ -77,8 +77,8 @@ private class CommonSubject(
     // ширина ячейки общей пары изначально равно 0 (не посчитано)
     val cellWidth: Int
 )
-
-private fun parseWorkDays(rows: List<XWPFTableRow>, docxName: String, groups: List<Group>): List<Lesson> {
+//получение пар из строк таблицы
+private fun parseLessons(rows: List<XWPFTableRow>, docxName: String, groups: List<Group>): List<Lesson> {
     // текущая дата по умолчанию не задана
     var currentDay: String? = null
     // возращаем список строк, преобразованный в список пар по следующему правилу
