@@ -16,7 +16,9 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
     }
 }
 
+// получаем список групп из таблицы
 private fun parseGroups(table: XWPFTable): List<Group> {
+    // преобразуем ячейки первой строки таблицы по следующему правилу
     return table.rows[0].tableCells.mapNotNull { cell ->
         // если текст ячейки является названием группы, то создать и добавить в список группу
         if (isGroupName(text = cell.text)) {
@@ -33,42 +35,31 @@ private fun parseGroups(table: XWPFTable): List<Group> {
     }
 }
 
-private fun findCommonSubject(row: XWPFTableRow): CommonSubject? {
-    // название дисциплины потоковой пары изначально не определено
-    var commonSubjectName: String? = null
-    // ширина ячейки общей пары изначально равно 0 (не посчитано)
-    var commonSubjectCellWidth = 0
+// ищем поточную пару в строке таблицы
+private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSubject? {
     // для каждой ячейки текущей строки, кроме первых двух
     for (cell in row.tableCells.drop(2)) {
         // название дисциплины - это текст текущей ячейки без пробелов в начале и конце
         val subjectName = cell.text.trim()
         // если название дисциплины не пустое
         if (subjectName.isNotEmpty()) {
-            // если название дисциплины уже найдено
-            if (commonSubjectName != null) {
-                // прерываем поиск поточной пары
-                break
-            }
-            // иначе название дисциплины общей пары - это название дисциплины
-            commonSubjectName = subjectName
             // получаем ширину ячейки
             val cellWidth = cellWidth(cell)
-            // ищем максимальную ширину ячейки в строке:
-            // если текущая ширина ячейки общей пары меньше ширины текущей ячейки
-            if (commonSubjectCellWidth < cellWidth) {
-                // устанавливаем, что ширина общей пары равна ширине текущей ячейки
-                commonSubjectCellWidth = cellWidth
+            // если количество групп равно двум и
+            if (groups.size == 2 &&
+                // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
+                // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
+                groups[0].cellWidth < cellWidth && groups[1].cellWidth < cellWidth
+            ) {
+                // то создаем и возвращаем поточную дисциплину с этим именем и просчитанной шириной ячейки
+                return CommonSubject(name = subjectName, cellWidth = cellWidth)
+            } else {
+                return null
             }
         }
     }
-    // если нашлось имя поточной дисциплины
-    if (commonSubjectName != null) {
-        // то создаем и возвращаем поточную дисциплину с этим именем и просчитанной шириной ячейки
-        return CommonSubject(name = commonSubjectName, cellWidth = commonSubjectCellWidth)
-    } else {
-        // иначе поточная дисцплина отсутсвует
-        return null
-    }
+    // иначе поточная дисцплина отсутсвует
+    return null
 }
 
 private class CommonSubject(
@@ -77,8 +68,13 @@ private class CommonSubject(
     // ширина ячейки общей пары изначально равно 0 (не посчитано)
     val cellWidth: Int
 )
+
 //получение пар из строк таблицы
-private fun parseLessons(rows: List<XWPFTableRow>, docxName: String, groups: List<Group>): List<Lesson> {
+private fun parseLessons(
+    rows: List<XWPFTableRow>,
+    docxName: String,
+    groups: List<Group>
+): List<Lesson> {
     // текущая дата по умолчанию не задана
     var currentDay: String? = null
     // возращаем список строк, преобразованный в список пар по следующему правилу
@@ -123,20 +119,14 @@ private fun parseLessonsWithSameTime(
     // устанавливаем "каретку" на ячейку с индеком 2
     var currentCellIndex = 2
     //находим общую пару у групп
-    val commonSubject = findCommonSubject(row)
+    val commonSubject = findCommonSubject(row, groups)
     // если все ячейки строки, кроме первых трех и последней - пустые
     return if (row.tableCells.drop(2).dropLast(1).all { cell -> cell.text.isBlank() }) {
         // то не добавляем элементы расписания из этой строки
         emptyList()
     } else {
-        // если количество групп равно двум и
-        if (groups.size == 2 &&
-            // название потоковой дисциплины определено и
-            commonSubject != null &&
-            // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
-            // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
-            groups[0].cellWidth < commonSubject.cellWidth && groups[1].cellWidth < commonSubject.cellWidth
-        ) {
+        // если потоковая пара определена
+        if (commonSubject != null) {
             // если текст последней ячейки содержит мою фамилию и инициалы
             if (containsMyNameShort(text = commonSubject.name)) {
                 // возвращаем список из одного элемента расписания,
