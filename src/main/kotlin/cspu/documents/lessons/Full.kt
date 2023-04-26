@@ -52,7 +52,7 @@ private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSub
                 groups[0].cellWidth < cellWidth && groups[1].cellWidth < cellWidth
             ) {
                 // то создаем и возвращаем поточную дисциплину с этим именем и просчитанной шириной ячейки
-                return CommonSubject(name = subjectName, cellWidth = cellWidth)
+                return CommonSubject(name = subjectName)
             } else {
                 return null
             }
@@ -64,9 +64,7 @@ private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSub
 
 private class CommonSubject(
     // название дисциплины потоковой пары изначально не определено
-    val name: String,
-    // ширина ячейки общей пары изначально равно 0 (не посчитано)
-    val cellWidth: Int
+    val name: String
 )
 
 //получение пар из строк таблицы
@@ -76,25 +74,30 @@ private fun parseLessons(
     groups: List<Group>
 ): List<Lesson> {
     // текущая дата по умолчанию не задана
-    var currentDay: String? = null
+    var currentDate: String? = null
     // возращаем список строк, преобразованный в список пар по следующему правилу
     return rows.flatMap { row ->
         // пробуем получить дату из текущей строки
-        val rowDay = row.tableCells[0].text.filter { char -> char.isDigit() || char == '.' }
+        val rowDate = parseRowDate(row)
         // если дата указана для этой строки (первая строка текущего дня)
-        if (rowDay.isNotBlank()) {
+        if (rowDate.isNotBlank()) {
             // то текущий день - это день текущей строки
-            currentDay = rowDay
+            currentDate = rowDate
         }
         //если текущая дата уже найдена, то
-        if (currentDay != null) {
+        if (currentDate != null) {
             // получаем пары из одной строки
-            parseLessonsWithSameTime(row, currentDay!!, docxName, groups)
+            parseLessonsWithSameTime(row, currentDate!!, docxName, groups)
         } else {
             // находимся на строке заголовка (не дошли до пар) поэтому не добавляем пары из этой строки
             emptyList()
         }
     }
+}
+
+// пробуем получить дату из текущей строки
+private fun parseRowDate(row: XWPFTableRow): String {
+    return row.tableCells[0].text.filter { char -> char.isDigit() || char == '.' }
 }
 
 // получение всех пар, которые идут одновременно
