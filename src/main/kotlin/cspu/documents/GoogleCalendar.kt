@@ -65,11 +65,11 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
 
         // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
         e.start = EventDateTime()
-            .setDateTime(DateTime(lesson.start))
+            .setDateTime(DateTime(lesson.time.start))
             .setTimeZone(timeZone)
         // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
         e.end = EventDateTime()
-            .setDateTime(DateTime(lesson.end))
+            .setDateTime(DateTime(lesson.time.end))
             .setTimeZone(timeZone)
         // составляем запрос на добавление события в календарь
         calendarApi.events().insert(calendarId, e).queue(batch) {

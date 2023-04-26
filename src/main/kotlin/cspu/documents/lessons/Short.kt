@@ -100,10 +100,12 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                         // чтобы добавился от этой строки в общий список текущего документа
                         listOf(
                             Lesson(
-                                // время начала этого элемента расписания разбираем по формату
-                                start = format.parse(formattedStart),
-                                // время конца этого элемента расписания разбираем по формату
-                                end = format.parse(formattedEnd),
+                                time = Lesson.Time(
+                                    // время начала этого элемента расписания разбираем по формату
+                                    start = format.parse(formattedStart),
+                                    // время конца этого элемента расписания разбираем по формату
+                                    end = format.parse(formattedEnd)
+                                ),
                                 // список названий групп - это имена с индексом 0 и 1
                                 groupNames = listOf(groups[0].name, groups[1].name),
                                 // название дисциплины это название поточной дисциплины
@@ -153,10 +155,12 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                             subjectNames.map { subjectName ->
                                 // создаем элемент расписания
                                 Lesson(
-                                    // время начала этого элемента расписания разбираем по формату
-                                    start = format.parse(formattedStart),
-                                    // время конца этого элемента расписания разбираем по формату
-                                    end = format.parse(formattedEnd),
+                                    time = Lesson.Time(
+                                        // время начала этого элемента расписания разбираем по формату
+                                        start = format.parse(formattedStart),
+                                        // время конца этого элемента расписания разбираем по формату
+                                        end = format.parse(formattedEnd)
+                                    ),
                                     // список названий групп - это список из названия текущей группы
                                     groupNames = listOf(group.name),
                                     // название дисциплины это название дисциплины

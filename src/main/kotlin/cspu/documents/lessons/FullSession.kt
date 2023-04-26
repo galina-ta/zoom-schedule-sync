@@ -17,8 +17,10 @@ fun parseFullSession(document: XWPFDocument, docxName: String): List<Lesson> {
                     val formatted = "$day $time"
                     val date = format.parse(formatted)
                     Lesson(
-                        start = date,
-                        end = date,
+                        time = Lesson.Time(
+                            start = date,
+                            end = date
+                        ),
                         groupNames = listOf(table.rows.first().tableCells[index].text.trim()),
                         subjectName = cell.text.trim(),
                         docxNames = listOf(docxName)

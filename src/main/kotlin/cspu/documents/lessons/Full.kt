@@ -87,7 +87,7 @@ private fun parseLessons(
         //если текущая дата уже найдена, то
         if (currentDate != null) {
             // получаем пары из одной строки
-            parseLessonsWithSameTime(row, currentDate!!, docxName, groups)
+            parseLessonsWithSameTime(row, workDayDate = currentDate!!, docxName, groups)
         } else {
             // находимся на строке заголовка (не дошли до пар) поэтому не добавляем пары из этой строки
             emptyList()
@@ -103,22 +103,10 @@ private fun parseRowDate(row: XWPFTableRow): String {
 // получение всех пар, которые идут одновременно
 private fun parseLessonsWithSameTime(
     row: XWPFTableRow,
-    currentDay: String,
+    workDayDate: String,
     docxName: String,
     groups: List<Group>
 ): List<Lesson> {
-    // стандартизируем черточки, заменяем в строке времени точки на двоеточие при разнообразии
-    val time = standardizeDashes(text = row.tableCells[1].text).replace(".", ":")
-    // берем время начала и убираем из него пробельные символы
-    val startTime = time.substringBefore(dash).trim()
-    // берем время конца и убираем из него пробельные символы
-    val endTime = time.substringAfter(dash).trim()
-    // получем дату и время начала события
-    val formattedStart = "$currentDay $startTime"
-    // получем дату и время конца события
-    val formattedEnd = "$currentDay $endTime"
-    // задаем формат представления даты и времени
-    val format = SimpleDateFormat("dd.MM.yyyy HH:mm")
     // устанавливаем "каретку" на ячейку с индеком 2
     var currentCellIndex = 2
     //находим общую пару у групп
@@ -136,10 +124,7 @@ private fun parseLessonsWithSameTime(
                 // чтобы добавился от этой строки в общий список текущего документа
                 listOf(
                     Lesson(
-                        // время начала этого элемента расписания разбираем по формату
-                        start = format.parse(formattedStart),
-                        // время конца этого элемента расписания разбираем по формату
-                        end = format.parse(formattedEnd),
+                        time = parseLessonTime(row, workDayDate),
                         // список названий групп - это имена с индексом 0 и 1
                         groupNames = listOf(groups[0].name, groups[1].name),
                         // название дисциплины это название поточной дисциплины
@@ -198,10 +183,8 @@ private fun parseLessonsWithSameTime(
                     subjectNames.map { subjectName ->
                         // создаем элемент расписания
                         Lesson(
-                            // время начала этого элемента расписания разбираем по формату
-                            start = format.parse(formattedStart),
-                            // время конца этого элемента расписания разбираем по формату
-                            end = format.parse(formattedEnd),
+                            // время пары
+                            time = parseLessonTime(row, workDayDate),
                             // список названий групп - это список из названия текущей группы
                             groupNames = listOf(group.name),
                             // название дисциплины это название дисциплины
@@ -218,6 +201,28 @@ private fun parseLessonsWithSameTime(
             }
         }
     }
+}
+
+private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time {
+    // стандартизируем черточки, заменяем в строке времени точки на двоеточие при разнообразии
+    val time = standardizeDashes(text = row.tableCells[1].text).replace(".", ":")
+    // берем время начала и убираем из него пробельные символы
+    val startTime = time.substringBefore(dash).trim()
+    // берем время конца и убираем из него пробельные символы
+    val endTime = time.substringAfter(dash).trim()
+    // получем дату и время начала события
+    val formattedStart = "$workDayDate $startTime"
+    // получем дату и время конца события
+    val formattedEnd = "$workDayDate $endTime"
+    // задаем формат представления даты и времени
+    val format = SimpleDateFormat("dd.MM.yyyy HH:mm")
+
+    return Lesson.Time(
+        // время начала этого элемента расписания разбираем по формату
+        start = format.parse(formattedStart),
+        // время конца этого элемента расписания разбираем по формату
+        end = format.parse(formattedEnd)
+    )
 }
 
 // очистить название дисциплины
