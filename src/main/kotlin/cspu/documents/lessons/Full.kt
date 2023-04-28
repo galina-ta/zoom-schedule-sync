@@ -122,69 +122,7 @@ private fun parseLessonsWithSameTime(
                 parseMyCommonLesson(row, workDayDate, docxName, groups, commonSubject)
             )
         } else {
-            // если в строке хотя бы одна ячейка с моей фамилией иинициалами
-            if (row.tableCells.any { cell -> containsMyNameShort(cell.text) }) {
-                // устанавливаем "каретку" на ячейку с индеком 2
-                var currentCellIndex = 2
-                //для каждой группы
-                groups.flatMap { group ->
-                    // список названий дисциплин - это изначально пустой изменяемый список
-                    val subjectNames = mutableListOf<String>()
-                    // изначально ширина ячеек дисциплин текущей группы равна 0
-                    var currentSubjectCellsWidth = 0
-                    // пока эта ширина меньше ширины ячейки текущей группы
-                    while (currentSubjectCellsWidth < group.cellWidth) {
-                        // текущая ячейка - это та ячейка, на которую указывает "каретка"
-                        val currentCell = row.tableCells.getOrNull(currentCellIndex)
-                        //если текущая ячейка отстутствует
-                        if (currentCell == null) {
-                            // прекращаем работу с текущей парой текущей группы
-                            break
-                        }
-                        // добавить к ширине ячеек групп ширину текущей ячейки
-                        currentSubjectCellsWidth += cellWidth(cell = currentCell)
-                        // перевести "каретку" в следующую ячейку
-                        currentCellIndex += 1
-                        // название дисциплины это текст текущей ячейки
-                        // без пробельных символов в начале и конце
-                        val subjectName = currentCell.text.trim()
-                        // если моя фамилия и инициалы содержится в названии дисциплины
-                        if (containsMyNameShort(subjectName)) {
-                            // в списке ячеек текущей строки, начиная с текущей позиции "каретки"
-                            val roomName = row.tableCells.drop(currentCellIndex)
-                                // ищем первую ячейку (если есть) с текстом, состоящим не только из пробельных символов
-                                .firstOrNull { cell -> cell.text.isNotBlank() }
-                                // если нашли, у текста ячейки убираем пробельные символы
-                                ?.text?.trim()
-                            // если аудитория нашлась
-                            if (roomName != null) {
-                                // добавляем в список дисциплин название дисциплины и аудиторию
-                                subjectNames.add("${clearSubjectName(subjectName)} $roomName")
-                            } else {
-                                // иначе добавляем только очищенное название дисциплины
-                                subjectNames.add(clearSubjectName(subjectName))
-                            }
-                        }
-                    }
-                    subjectNames.map { subjectName ->
-                        // создаем элемент расписания
-                        Lesson(
-                            // время пары
-                            time = parseLessonTime(row, workDayDate),
-                            // список названий групп - это список из названия текущей группы
-                            groupNames = listOf(group.name),
-                            // название дисциплины это название дисциплины
-                            subjectName = subjectName,
-                            // название документа, который прикрепится к этому элементу расписания
-                            // это название текущего документа
-                            docxNames = listOf(docxName)
-                        )
-                    }
-                }
-            } else {
-                // иначе не добавляем элементы расписания из этой строки
-                emptyList()
-            }
+            parseMyGroupLessons(row, groups, workDayDate, docxName)
         }
     }
 }
@@ -195,7 +133,78 @@ private fun hasLessons(row: XWPFTableRow): Boolean {
     // и проверяем является ли хотя бы одна из оставшихся не пустой
     return row.tableCells.drop(2).dropLast(1).any { cell -> cell.text.isNotBlank() }
 }
-
+//получаем мои пары отдельных групп из строки
+private fun parseMyGroupLessons(
+    row: XWPFTableRow,
+    groups: List<Group>,
+    workDayDate: String,
+    docxName: String
+): List<Lesson> {
+    // если в строке хотя бы одна ячейка с моей фамилией иинициалами
+    return if (row.tableCells.any { cell -> containsMyNameShort(cell.text) }) {
+        // устанавливаем "каретку" на ячейку с индеком 2
+        var currentCellIndex = 2
+        //для каждой группы
+        groups.flatMap { group ->
+            // список названий дисциплин - это изначально пустой изменяемый список
+            val subjectNames = mutableListOf<String>()
+            // изначально ширина ячеек дисциплин текущей группы равна 0
+            var currentSubjectCellsWidth = 0
+            // пока эта ширина меньше ширины ячейки текущей группы
+            while (currentSubjectCellsWidth < group.cellWidth) {
+                // текущая ячейка - это та ячейка, на которую указывает "каретка"
+                val currentCell = row.tableCells.getOrNull(currentCellIndex)
+                //если текущая ячейка отстутствует
+                if (currentCell == null) {
+                    // прекращаем работу с текущей парой текущей группы
+                    break
+                }
+                // добавить к ширине ячеек групп ширину текущей ячейки
+                currentSubjectCellsWidth += cellWidth(cell = currentCell)
+                // перевести "каретку" в следующую ячейку
+                currentCellIndex += 1
+                // название дисциплины это текст текущей ячейки
+                // без пробельных символов в начале и конце
+                val subjectName = currentCell.text.trim()
+                // если моя фамилия и инициалы содержится в названии дисциплины
+                if (containsMyNameShort(subjectName)) {
+                    // в списке ячеек текущей строки, начиная с текущей позиции "каретки"
+                    val roomName = row.tableCells.drop(currentCellIndex)
+                        // ищем первую ячейку (если есть) с текстом, состоящим не только из пробельных символов
+                        .firstOrNull { cell -> cell.text.isNotBlank() }
+                        // если нашли, у текста ячейки убираем пробельные символы
+                        ?.text?.trim()
+                    // если аудитория нашлась
+                    if (roomName != null) {
+                        // добавляем в список дисциплин название дисциплины и аудиторию
+                        subjectNames.add("${clearSubjectName(subjectName)} $roomName")
+                    } else {
+                        // иначе добавляем только очищенное название дисциплины
+                        subjectNames.add(clearSubjectName(subjectName))
+                    }
+                }
+            }
+            subjectNames.map { subjectName ->
+                // создаем элемент расписания
+                Lesson(
+                    // время пары
+                    time = parseLessonTime(row, workDayDate),
+                    // список названий групп - это список из названия текущей группы
+                    groupNames = listOf(group.name),
+                    // название дисциплины это название дисциплины
+                    subjectName = subjectName,
+                    // название документа, который прикрепится к этому элементу расписания
+                    // это название текущего документа
+                    docxNames = listOf(docxName)
+                )
+            }
+        }
+    } else {
+        // иначе не добавляем элементы расписания из этой строки
+        emptyList()
+    }
+}
+//получаем мою поточную пару из строки
 private fun parseMyCommonLesson(
     row: XWPFTableRow,
     workDayDate: String,
