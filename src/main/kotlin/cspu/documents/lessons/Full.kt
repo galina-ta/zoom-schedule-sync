@@ -111,8 +111,8 @@ private fun parseLessonsWithSameTime(
     var currentCellIndex = 2
     //находим общую пару у групп
     val commonSubject = findCommonSubject(row, groups)
-    // если все ячейки строки, кроме первых трех и последней - пустые
-    return if (row.tableCells.drop(2).dropLast(1).all { cell -> cell.text.isBlank() }) {
+    // если все ячейки строки, кроме первых двух и последней - пустые
+    return if (!hasLessons(row)) {
         // то не добавляем элементы расписания из этой строки
         emptyList()
     } else {
@@ -201,6 +201,12 @@ private fun parseLessonsWithSameTime(
             }
         }
     }
+}
+// есть ли пары в строке
+private fun hasLessons (row: XWPFTableRow): Boolean {
+    // отбрасываем у строки первые две и последнюю ячейки
+    // и проверяем является ли хотя бы одна из оставшихся не пустой
+    return row.tableCells.drop(2).dropLast(1).any { cell -> cell.text.isNotBlank() }
 }
 
 private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time {
