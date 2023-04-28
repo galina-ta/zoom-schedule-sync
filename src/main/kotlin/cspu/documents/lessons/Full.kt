@@ -107,40 +107,26 @@ private fun parseLessonsWithSameTime(
     docxName: String,
     groups: List<Group>
 ): List<Lesson> {
-    // устанавливаем "каретку" на ячейку с индеком 2
-    var currentCellIndex = 2
     //находим общую пару у групп
     val commonSubject = findCommonSubject(row, groups)
-    // если все ячейки строки, кроме первых двух и последней - пустые
+    // если в строке нет пар
     return if (!hasLessons(row)) {
         // то не добавляем элементы расписания из этой строки
         emptyList()
     } else {
         // если потоковая пара определена
         if (commonSubject != null) {
-            // если текст последней ячейки содержит мою фамилию и инициалы
-            if (containsMyNameShort(text = commonSubject.name)) {
-                // возвращаем список из одного элемента расписания,
-                // чтобы добавился от этой строки в общий список текущего документа
-                listOf(
-                    Lesson(
-                        time = parseLessonTime(row, workDayDate),
-                        // список названий групп - это имена с индексом 0 и 1
-                        groupNames = listOf(groups[0].name, groups[1].name),
-                        // название дисциплины это название поточной дисциплины
-                        subjectName = "${clearSubjectName(commonSubject.name)} ${row.tableCells.last().text.trim()}",
-                        // название документа, который прикрепится к этому элементу расписания
-                        // это название текущего документа
-                        docxNames = listOf(docxName)
-                    )
-                )
-            } else {
-                // иначе не добавляем элементы расписания из этой строки
-                emptyList()
-            }
+            //делаем список из моей потоковой пары, если она есть
+            listOfNotNull(
+                // пробуем сформировать мою поточную пару
+                parseMyCommonLesson(row, workDayDate, docxName, groups, commonSubject)
+            )
         } else {
             // если в строке хотя бы одна ячейка с моей фамилией иинициалами
             if (row.tableCells.any { cell -> containsMyNameShort(cell.text) }) {
+                // устанавливаем "каретку" на ячейку с индеком 2
+                var currentCellIndex = 2
+                //для каждой группы
                 groups.flatMap { group ->
                     // список названий дисциплин - это изначально пустой изменяемый список
                     val subjectNames = mutableListOf<String>()
@@ -202,11 +188,39 @@ private fun parseLessonsWithSameTime(
         }
     }
 }
+
 // есть ли пары в строке
-private fun hasLessons (row: XWPFTableRow): Boolean {
+private fun hasLessons(row: XWPFTableRow): Boolean {
     // отбрасываем у строки первые две и последнюю ячейки
     // и проверяем является ли хотя бы одна из оставшихся не пустой
     return row.tableCells.drop(2).dropLast(1).any { cell -> cell.text.isNotBlank() }
+}
+
+private fun parseMyCommonLesson(
+    row: XWPFTableRow,
+    workDayDate: String,
+    docxName: String,
+    groups: List<Group>,
+    commonSubject: CommonSubject
+): Lesson? {
+    // если текст последней ячейки содержит мою фамилию и инициалы
+    return if (containsMyNameShort(text = commonSubject.name)) {
+        // возвращаем пару из текущей строки
+        Lesson(
+            // время пары
+            time = parseLessonTime(row, workDayDate),
+            // список названий групп - это имена с индексом 0 и 1
+            groupNames = listOf(groups[0].name, groups[1].name),
+            // название дисциплины это название поточной дисциплины
+            subjectName = "${clearSubjectName(commonSubject.name)} ${row.tableCells.last().text.trim()}",
+            // название документа, который прикрепится к этому элементу расписания
+            // это название текущего документа
+            docxNames = listOf(docxName)
+        )
+    } else {
+        // иначе возвращаем отсутствие пары
+        null
+    }
 }
 
 private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time {
@@ -230,6 +244,7 @@ private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time
         end = format.parse(formattedEnd)
     )
 }
+
 
 // очистить название дисциплины
 private fun clearSubjectName(subjectName: String): String {
