@@ -43,11 +43,26 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         .setApplicationName(APPLICATION_NAME)
         // создаем объект
         .build()
-
+    // запоминаем идентификатор календаря Generated на аккаунте
+    val calendarId =
+        "fdfeb4d2138eb99b5d050ea29ac1c6c576aa6dbb8a852b9cb069006af1bfe9f4@group.calendar.google.com"
+    //получаем список событий из календаря для удаления
+    val eventsToDelete = calendarApi.events().list(calendarId).setMaxResults(2500).execute()
+    //проверяем наличие событий для удаления
+    if (eventsToDelete.items.isNotEmpty()) {
+        // делаем пустую "пачку" запросов на удаление
+        val deleteBatch = calendarApi.batch()
+        //для каждого события на удаление
+        eventsToDelete.items.forEach { eventToDelete ->
+            // составляем запрос на удаление и добавляем его в "пачку"
+            calendarApi.events().delete(calendarId, eventToDelete.id).queue(deleteBatch) {
+            }
+        }
+        //запускаем "пачку" запросов на удаление
+        deleteBatch.execute()
+    }
+    // создаем "пачку" для запросов на добавление собитий в календарь
     val batch = calendarApi.batch()
-    // запоминаем идентификатор основного календаря на аккаунте
-    val calendarId = "primary"
-    calendarApi.calendars().clear(calendarId).execute()
     // для каждого элемента расписания
     lessons.forEach { lesson ->
         // создаем событие

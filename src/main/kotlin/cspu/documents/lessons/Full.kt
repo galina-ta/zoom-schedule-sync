@@ -11,7 +11,7 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
     return document.tables.flatMap { table ->
         // преобразовать список ячеек первой строки таблицы в список групп
         val groups = parseGroups(table)
-        // разобрать рабочие дни и получить список пар
+        // получить список пар
         parseLessons(table.rows, docxName, groups)
     }
 }
@@ -122,6 +122,7 @@ private fun parseLessonsWithSameTime(
                 parseMyCommonLesson(row, workDayDate, docxName, groups, commonSubject)
             )
         } else {
+            //иначе получаем список отдельных групп
             parseMyGroupLessons(row, groups, workDayDate, docxName)
         }
     }
@@ -133,6 +134,7 @@ private fun hasLessons(row: XWPFTableRow): Boolean {
     // и проверяем является ли хотя бы одна из оставшихся не пустой
     return row.tableCells.drop(2).dropLast(1).any { cell -> cell.text.isNotBlank() }
 }
+
 //получаем мои пары отдельных групп из строки
 private fun parseMyGroupLessons(
     row: XWPFTableRow,
@@ -204,6 +206,7 @@ private fun parseMyGroupLessons(
         emptyList()
     }
 }
+
 //получаем мою поточную пару из строки
 private fun parseMyCommonLesson(
     row: XWPFTableRow,
@@ -232,6 +235,7 @@ private fun parseMyCommonLesson(
     }
 }
 
+//получаем время пары
 private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time {
     // стандартизируем черточки, заменяем в строке времени точки на двоеточие при разнообразии
     val time = standardizeDashes(text = row.tableCells[1].text).replace(".", ":")
@@ -253,7 +257,6 @@ private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time
         end = format.parse(formattedEnd)
     )
 }
-
 
 // очистить название дисциплины
 private fun clearSubjectName(subjectName: String): String {
