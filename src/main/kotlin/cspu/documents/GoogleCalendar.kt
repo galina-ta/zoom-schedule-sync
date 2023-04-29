@@ -69,20 +69,21 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         val e = Event()
         // форматируем список групп, разделяя все его элементы пробелом
         val formattedGroupNames = lesson.groupNames.joinToString(separator = " ")
-        // записываем в короткое описание названия дисциплины и отформатированное название группы через пробел
+        // записываем в короткое описание названия дисциплины
+        // и отформатированное название группы через пробел
         e.summary = "${lesson.subjectName} $formattedGroupNames"
-        // в подробное описание добавляем ссылку zoom  и из какого документа был взят этот элемент расписания
+        // в подробное описание добавляем из какого документа был взят этот элемент расписания
         e.description = """
-            https://us05web.zoom.us/j/88602486982?pwd=YnJiU21ldHl2TnRINXNpRnl3ODE5Zz09
-            
             from: ${lesson.docxNames.joinToString()}
         """.trimIndent() // убирает лидирующие пробелы перед блоком текста
 
-        // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
+        // в качестве времени начала события устанавливаем время начала элемента расписания
+        // и задаем часовой пояс
         e.start = EventDateTime()
             .setDateTime(DateTime(lesson.time.start))
             .setTimeZone(timeZone)
-        // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
+        // в качестве времени окончания события устанавливаем время конца элемента расписания
+        // и задаем часовой пояс
         e.end = EventDateTime()
             .setDateTime(DateTime(lesson.time.end))
             .setTimeZone(timeZone)
@@ -110,11 +111,13 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
             }
         // в подробное описание ...расписания
         practiceEvent.description = "$formattedGroups\n\nfrom: ${practice.docxName}"
-        // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
+        // в качестве времени начала события устанавливаем время начала элемента расписания
+        // и задаем часовой пояс
         practiceEvent.start = EventDateTime()
             .setDateTime(DateTime(practice.start))
             .setTimeZone(timeZone)
-        // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
+        // в качестве времени окончания события устанавливаем время конца элемента расписания
+        // и задаем часовой пояс
         practiceEvent.end = EventDateTime()
             .setDateTime(DateTime(practice.end))
             .setTimeZone(timeZone)
@@ -130,7 +133,8 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         val checkStartCalendar = java.util.Calendar.getInstance()
         checkStartCalendar.time = practice.checkEnd
         checkStartCalendar.set(java.util.Calendar.HOUR, 12)
-        // в качестве времени начала события устанавливаем время начала элемента расписания и задаем часовой пояс
+        // в качестве времени начала события устанавливаем время начала элемента расписания
+        // и задаем часовой пояс
         checkEndEvent.start = EventDateTime()
             .setDateTime(DateTime(checkStartCalendar.time))
             .setTimeZone(timeZone)
@@ -139,7 +143,8 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         checkEndCalendar.time = practice.checkEnd
         checkEndCalendar.set(java.util.Calendar.HOUR, 12)
         checkEndCalendar.set(java.util.Calendar.MINUTE, 30)
-        // в качестве времени окончания события устанавливаем время конца элемента расписания и задаем часовой пояс
+        // в качестве времени окончания события устанавливаем время конца элемента расписания
+        // и задаем часовой пояс
         checkEndEvent.end = EventDateTime()
             .setDateTime(DateTime(checkEndCalendar.time))
             .setTimeZone(timeZone)
@@ -166,7 +171,8 @@ private fun googleAuthenticate(httpTransport: NetHttpTransport): Credential {
             .setAccessType("offline")
             // создаем объект
             .build()
-    // указываем, что подтверждение аутентификации должно прийти на тот компьютер, на котором исполняется программа
+    // указываем, что подтверждение аутентификации должно прийти на тот компьютер,
+    // на котором исполняется программа
     val receiver = LocalServerReceiver.Builder().setPort(8888).build()
     // аутентифицируемся для последующей авторизации текущего пользователя
     return AuthorizationCodeInstalledApp(flow, receiver).authorize("user")
