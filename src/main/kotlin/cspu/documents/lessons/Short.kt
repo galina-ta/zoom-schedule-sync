@@ -109,7 +109,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                                 // список названий групп - это имена с индексом 0 и 1
                                 groupNames = listOf(groups[0].name, groups[1].name),
                                 // название дисциплины это название поточной дисциплины
-                                subjectName = commonSubjectName,
+                                subjectDescription = commonSubjectName,
                                 // название документа, который прикрепится к этому элементу расписания
                                 // это название текущего документа
                                 docxNames = listOf(docxName)
@@ -164,7 +164,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                                     // список названий групп - это список из названия текущей группы
                                     groupNames = listOf(group.name),
                                     // название дисциплины это название дисциплины
-                                    subjectName = subjectName,
+                                    subjectDescription = subjectName,
                                     // название документа, который прикрепится к этому элементу расписания
                                     // это название текущего документа
                                     docxNames = listOf(docxName)

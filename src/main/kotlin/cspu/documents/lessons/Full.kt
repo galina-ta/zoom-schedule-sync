@@ -2,6 +2,7 @@ package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFTable
+import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import org.apache.poi.xwpf.usermodel.XWPFTableRow
 import java.text.SimpleDateFormat
 
@@ -144,12 +145,29 @@ private fun parseMyGroupLessons(
 ): List<Lesson> {
     // если в строке хотя бы одна ячейка с моей фамилией иинициалами
     return if (row.tableCells.any { cell -> containsMyNameShort(cell.text) }) {
-        // устанавливаем "каретку" на ячейку с индеком 2
-        var currentCellIndex = 2
+        GroupLessonsProvider(row, workDayDate, docxName, groups).provide()
+    } else {
+        // иначе не добавляем элементы расписания из этой строки
+        emptyList()
+    }
+}
+
+//получает список пар отдельных групп из строки
+private class GroupLessonsProvider(
+    private val row: XWPFTableRow,
+    private val workDayDate: String,
+    private val docxName: String,
+    private val groups: List<Group>
+) {
+    // устанавливаем "каретку" на ячейку с индеком 2
+    private var currentCellIndex = 2
+
+    // получаем список пар
+    fun provide(): List<Lesson> {
         //для каждой группы
-        groups.flatMap { group ->
-            // список названий дисциплин - это изначально пустой изменяемый список
-            val subjectNames = mutableListOf<String>()
+        return groups.flatMap { group ->
+            // список названий моих дисциплин - это изначально пустой изменяемый список
+            val mySubjectDescriptions = mutableListOf<String>()
             // изначально ширина ячеек дисциплин текущей группы равна 0
             var currentSubjectCellsWidth = 0
             // пока эта ширина меньше ширины ячейки текущей группы
@@ -165,45 +183,72 @@ private fun parseMyGroupLessons(
                 currentSubjectCellsWidth += cellWidth(cell = currentCell)
                 // перевести "каретку" в следующую ячейку
                 currentCellIndex += 1
-                // название дисциплины это текст текущей ячейки
-                // без пробельных символов в начале и конце
-                val subjectName = currentCell.text.trim()
-                // если моя фамилия и инициалы содержится в названии дисциплины
-                if (containsMyNameShort(subjectName)) {
-                    // в списке ячеек текущей строки, начиная с текущей позиции "каретки"
-                    val roomName = row.tableCells.drop(currentCellIndex)
-                        // ищем первую ячейку (если есть) с текстом, состоящим не только из пробельных символов
-                        .firstOrNull { cell -> cell.text.isNotBlank() }
-                        // если нашли, у текста ячейки убираем пробельные символы
-                        ?.text?.trim()
-                    // если аудитория нашлась
-                    if (roomName != null) {
-                        // добавляем в список дисциплин название дисциплины и аудиторию
-                        subjectNames.add("${clearSubjectName(subjectName)} $roomName")
-                    } else {
-                        // иначе добавляем только очищенное название дисциплины
-                        subjectNames.add(clearSubjectName(subjectName))
-                    }
+                // название моей дисциплины это текст текущей ячейки
+                val mySubjectDescription = formatMySubjectDescription(currentCell)
+                // если описание моей дисциплины нашлось
+                if (mySubjectDescription != null) {
+                    //добавляем описание моей дисциплины в список описания моих дисциплин
+                    mySubjectDescriptions.add(mySubjectDescription)
                 }
             }
-            subjectNames.map { subjectName ->
-                // создаем элемент расписания
-                Lesson(
-                    // время пары
-                    time = parseLessonTime(row, workDayDate),
-                    // список названий групп - это список из названия текущей группы
-                    groupNames = listOf(group.name),
-                    // название дисциплины это название дисциплины
-                    subjectName = subjectName,
-                    // название документа, который прикрепится к этому элементу расписания
-                    // это название текущего документа
-                    docxNames = listOf(docxName)
-                )
-            }
+            //преобразуем описание дисциплин в пары
+            subjectDescriptionToLesson(group, mySubjectDescriptions)
         }
-    } else {
-        // иначе не добавляем элементы расписания из этой строки
-        emptyList()
+    }
+
+    // формируем описание моей дисциплины
+    private fun formatMySubjectDescription(currentCell: XWPFTableCell): String? {
+        // название дисциплины - это текст текущей ячейки
+        // без пробельных символов в начале и конце
+        val cellText = currentCell.text.trim()
+        // если моя фамилия и инициалы содержится в названии дисциплины
+        if (containsMyNameShort(cellText)) {
+            // ищем аудиторию
+            val roomName = findRoomName()
+            // если аудитория нашлась
+            if (roomName != null) {
+                // добавляем в список дисциплин название дисциплины и аудиторию
+                return "${clearSubjectName(cellText)} $roomName"
+            } else {
+                // иначе добавляем только очищенное название дисциплины
+                return clearSubjectName(cellText)
+            }
+        } else {
+            // иначе в этой ячейке нет моей дисциплины
+            return null
+        }
+    }
+
+// находим аудиторию
+    private fun findRoomName(): String? {
+        // ищем в списке ячеек текущей строки, начиная с текущей позиции "каретки"
+        return row.tableCells.drop(currentCellIndex)
+            // ищем первую ячейку (если есть) с текстом, состоящим не только из пробельных символов
+            .firstOrNull { cell -> cell.text.isNotBlank() }
+            // если нашли, у текста ячейки убираем пробельные символы
+            ?.text?.trim()
+    }
+
+    // создаем описание дисциплины
+    private fun subjectDescriptionToLesson(
+        group: Group,
+        mySubjectDescriptions: List<String>
+    ): List<Lesson> {
+        // возвращаем результат преобразования по правилу
+        return mySubjectDescriptions.map { subjectDescription ->
+            // создаем пару
+            Lesson(
+                // время пары
+                time = parseLessonTime(row, workDayDate),
+                // список названий групп - это список из названия текущей группы
+                groupNames = listOf(group.name),
+                // название дисциплины это название дисциплины
+                subjectDescription = subjectDescription,
+                // название документа, который прикрепится к этому элементу расписания
+                // это название текущего документа
+                docxNames = listOf(docxName)
+            )
+        }
     }
 }
 
@@ -224,7 +269,7 @@ private fun parseMyCommonLesson(
             // список названий групп - это имена с индексом 0 и 1
             groupNames = listOf(groups[0].name, groups[1].name),
             // название дисциплины это название поточной дисциплины
-            subjectName = "${clearSubjectName(commonSubject.name)} ${row.tableCells.last().text.trim()}",
+            subjectDescription = "${clearSubjectName(commonSubject.name)} ${row.tableCells.last().text.trim()}",
             // название документа, который прикрепится к этому элементу расписания
             // это название текущего документа
             docxNames = listOf(docxName)

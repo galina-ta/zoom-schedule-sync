@@ -9,13 +9,13 @@ class Lesson(
     // список названий групп
     val groupNames: List<String>,
     // название дисциплины и аудитории (если есть)
-    val subjectName: String,
+    val subjectDescription: String,
     // название файла, из которого взяты занятия
     val docxNames: List<String>
 ) {
     // формат, в котором элементы расписания будут отображены в дебаге (при отладке)
     override fun toString(): String {
-        return "${time.start} $subjectName ${groupNames.joinToString(separator = " ")}"
+        return "${time.start} $subjectDescription ${groupNames.joinToString(separator = " ")}"
     }
 
     class Time(
@@ -45,7 +45,7 @@ fun deduplicate(lessons: List<Lesson>): List<Lesson> {
                 // название группы - это названия всех групп всех элементов группы записей календаря
                 groupNames = entries.flatMap { entry -> entry.groupNames },
                 // название дисциплины и аудитории - это названия дисциплины и аудитории первого элемента записи
-                subjectName = entries.first().subjectName,
+                subjectDescription = entries.first().subjectDescription,
                 //названия файлов - это названия всех файлов, из которых взяты элементы группы записей календаря
                 docxNames = entries.flatMap { entry -> entry.docxNames }
             )

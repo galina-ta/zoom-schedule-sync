@@ -22,7 +22,7 @@ fun parseFullSession(document: XWPFDocument, docxName: String): List<Lesson> {
                             end = date
                         ),
                         groupNames = listOf(table.rows.first().tableCells[index].text.trim()),
-                        subjectName = cell.text.trim(),
+                        subjectDescription = cell.text.trim(),
                         docxNames = listOf(docxName)
                     )
                 } else {

@@ -71,7 +71,7 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         val formattedGroupNames = lesson.groupNames.joinToString(separator = " ")
         // записываем в короткое описание названия дисциплины
         // и отформатированное название группы через пробел
-        e.summary = "${lesson.subjectName} $formattedGroupNames"
+        e.summary = "${lesson.subjectDescription} $formattedGroupNames"
         // в подробное описание добавляем из какого документа был взят этот элемент расписания
         e.description = """
             from: ${lesson.docxNames.joinToString()}
