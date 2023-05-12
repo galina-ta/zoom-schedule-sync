@@ -1,5 +1,7 @@
 package cspu.documents.lessons
 
+import org.apache.poi.xwpf.usermodel.XWPFTable
+
 // описание группы
 class Group(
    // название
@@ -29,7 +31,24 @@ fun isFullGroupName(text: String): Boolean {
     // проверяем начинается ли очищенный текст с ОФ-
     return cleared.startsWith("ОФ$dash")
 }
-
+// получаем список групп из таблицы
+fun parseGroups(table: XWPFTable): List<Group> {
+    // преобразуем ячейки первой строки таблицы по следующему правилу
+    return table.rows[0].tableCells.mapNotNull { cell ->
+        // если текст ячейки является названием группы, то создать и добавить в список группу
+        if (isGroupName(text = cell.text)) {
+            // у которой имя это текст текущей ячейки без пробельных символов в начале и конце
+            Group(
+                name = cell.text.trim(),
+                // ширина ячейки является шириной текущей ячейки
+                cellWidth = cellWidth(cell)
+            )
+        } else {
+            // иначе ничего не добавлять
+            null
+        }
+    }
+}
 // очищаем текст названия группы
 private fun clearGroupName(text: String): String {
     // стандартизуем черточки, очищаем от пробельных символов и приводимк верхнему регистру

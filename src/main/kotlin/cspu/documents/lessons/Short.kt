@@ -8,21 +8,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
     // преобразовать список таблиц докуента в плоский список элементов расписания
     return document.tables.flatMap { table ->
         // преобразовать список ячеек первой строки таблицы в список групп
-        val groups = table.rows[0].tableCells.mapNotNull { cell ->
-            // если текст ячейки является названием группы
-            if (isGroupName(text = cell.text)) {
-                // то создать и добавить в список группу
-                Group(
-                    // у которой имя это текст текущей ячейки без пробельных символов в начале и конце
-                    name = cell.text.trim(),
-                    // ширина ячейки является шириной текущей ячейки
-                    cellWidth = cellWidth(cell)
-                )
-            } else {
-                // иначе ничего не добавлять
-                null
-            }
-        }
+        val groups = parseGroups(table)
         // текущая дата изначально не задана
         var currentDay: String? = null
         // преобразовать список строк таблицы в плоский список элементов расписания

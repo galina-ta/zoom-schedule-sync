@@ -17,25 +17,6 @@ fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
     }
 }
 
-// получаем список групп из таблицы
-private fun parseGroups(table: XWPFTable): List<Group> {
-    // преобразуем ячейки первой строки таблицы по следующему правилу
-    return table.rows[0].tableCells.mapNotNull { cell ->
-        // если текст ячейки является названием группы, то создать и добавить в список группу
-        if (isGroupName(text = cell.text)) {
-            // у которой имя это текст текущей ячейки без пробельных символов в начале и конце
-            Group(
-                name = cell.text.trim(),
-                // ширина ячейки является шириной текущей ячейки
-                cellWidth = cellWidth(cell)
-            )
-        } else {
-            // иначе ничего не добавлять
-            null
-        }
-    }
-}
-
 // ищем поточную пару в строке таблицы
 private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSubject? {
     // для каждой ячейки текущей строки, кроме первых двух
@@ -145,6 +126,7 @@ private fun parseMyGroupLessons(
 ): List<Lesson> {
     // если в строке хотя бы одна ячейка с моей фамилией иинициалами
     return if (row.tableCells.any { cell -> containsMyNameShort(cell.text) }) {
+        // создаем предоставитель пар отдельных групп и получаем список пар
         GroupLessonsProvider(row, workDayDate, docxName, groups).provide()
     } else {
         // иначе не добавляем элементы расписания из этой строки

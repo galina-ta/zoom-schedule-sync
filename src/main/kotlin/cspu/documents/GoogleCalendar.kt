@@ -46,7 +46,7 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         .build()
     // запоминаем идентификатор календаря Generated на аккаунте
     val calendarId =
-        "fdfeb4d2138eb99b5d050ea29ac1c6c576aa6dbb8a852b9cb069006af1bfe9f4@group.calendar.google.com"
+        "44950e5ca587d5eefbb5721228d5d150a77d377469f558f2cde2a70afefd1af1@group.calendar.google.com"
 
     // события для удаления - это результат запроса всех собыий календаря
     val eventsToDelete = requestAllEvents(calendarId, calendarApi)
