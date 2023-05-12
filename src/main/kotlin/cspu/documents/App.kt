@@ -1,6 +1,5 @@
 package cspu.documents
 
-import cspu.documents.lessons.exportInGoogleCalendar
 import cspu.documents.lessons.generateLessonsRating
 import cspu.documents.lessons.loadLessons
 import cspu.documents.practice.generatePractice

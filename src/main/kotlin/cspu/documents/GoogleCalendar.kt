@@ -1,4 +1,4 @@
-package cspu.documents.lessons
+package cspu.documents
 
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
@@ -19,6 +19,7 @@ import com.google.api.services.calendar.CalendarRequest
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
+import cspu.documents.lessons.Lesson
 import cspu.documents.practice.Practice
 import java.io.File
 import java.io.InputStreamReader
@@ -46,14 +47,16 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
     // запоминаем идентификатор календаря Generated на аккаунте
     val calendarId =
         "fdfeb4d2138eb99b5d050ea29ac1c6c576aa6dbb8a852b9cb069006af1bfe9f4@group.calendar.google.com"
-    //получаем список событий из календаря для удаления
-    val eventsToDelete = calendarApi.events().list(calendarId).setMaxResults(2500).execute()
+
+    // события для удаления - это результат запроса всех собыий календаря
+    val eventsToDelete = requestAllEvents(calendarId, calendarApi)
+
     //проверяем наличие событий для удаления
-    if (eventsToDelete.items.isNotEmpty()) {
+    if (eventsToDelete.isNotEmpty()) {
         // делаем пустую "пачку" запросов на удаление
         val deleteBatch = calendarApi.batch()
         //для каждого события на удаление
-        eventsToDelete.items.forEach { eventToDelete ->
+        eventsToDelete.forEach { eventToDelete ->
             // составляем запрос на удаление и добавляем его в "пачку"
             calendarApi.events().delete(calendarId, eventToDelete.id).queue(deleteBatch) {
             }
@@ -153,6 +156,35 @@ fun exportInGoogleCalendar(lessons: List<Lesson>, practices: List<Practice>) {
         }
     }
     batch.execute()
+}
+
+// запрашиваем все события, которые есть в кадендаре
+private fun requestAllEvents(calendarId: String, calendarApi: Calendar): List<Event> {
+    // создаём изначально пустой изменяемый список, в который потом добавим все события
+    val allEvents = mutableListOf<Event>()
+
+    // получаем первую старницу событий календаря длиной 2500 событий
+    var eventsResponse = calendarApi.events()
+        .list(calendarId)
+        .setMaxResults(2500)
+        .execute()
+    // добавляем все события первой страницы в список всех событий
+    allEvents.addAll(eventsResponse.items)
+
+    // пока у последней запрошенной страницы есть ссылка на следующую:
+    while (eventsResponse.nextPageToken != null) {
+        // запрашиваем следующую страницу длиной 2500 событий
+        eventsResponse = calendarApi.events()
+            .list(calendarId)
+            .setPageToken(eventsResponse.nextPageToken)
+            .setMaxResults(2500)
+            .execute()
+        // добавляем все события этой страницы в список всех событий
+        allEvents.addAll(eventsResponse.items)
+    }
+
+    // возвращаем список всех событий
+    return allEvents
 }
 
 // аутентифицироваться в google-календаре
