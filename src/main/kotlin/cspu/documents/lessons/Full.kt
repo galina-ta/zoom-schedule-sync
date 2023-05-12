@@ -1,10 +1,8 @@
 package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
-import org.apache.poi.xwpf.usermodel.XWPFTable
 import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import org.apache.poi.xwpf.usermodel.XWPFTableRow
-import java.text.SimpleDateFormat
 
 // разобрать документ с расписанием очного отделения
 fun parseFull(document: XWPFDocument, docxName: String): List<Lesson> {
@@ -201,7 +199,7 @@ private class GroupLessonsProvider(
         }
     }
 
-// находим аудиторию
+    // находим аудиторию
     private fun findRoomName(): String? {
         // ищем в списке ячеек текущей строки, начиная с текущей позиции "каретки"
         return row.tableCells.drop(currentCellIndex)
@@ -221,7 +219,7 @@ private class GroupLessonsProvider(
             // создаем пару
             Lesson(
                 // время пары
-                time = parseLessonTime(row, workDayDate),
+                time = parseLessonTime(cell = row.tableCells[1], workDayDate),
                 // список названий групп - это список из названия текущей группы
                 groupNames = listOf(group.name),
                 // название дисциплины это название дисциплины
@@ -247,7 +245,7 @@ private fun parseMyCommonLesson(
         // возвращаем пару из текущей строки
         Lesson(
             // время пары
-            time = parseLessonTime(row, workDayDate),
+            time = parseLessonTime(cell = row.tableCells[1], workDayDate),
             // список названий групп - это имена с индексом 0 и 1
             groupNames = listOf(groups[0].name, groups[1].name),
             // название дисциплины это название поточной дисциплины
@@ -260,29 +258,6 @@ private fun parseMyCommonLesson(
         // иначе возвращаем отсутствие пары
         null
     }
-}
-
-//получаем время пары
-private fun parseLessonTime(row: XWPFTableRow, workDayDate: String): Lesson.Time {
-    // стандартизируем черточки, заменяем в строке времени точки на двоеточие при разнообразии
-    val time = standardizeDashes(text = row.tableCells[1].text).replace(".", ":")
-    // берем время начала и убираем из него пробельные символы
-    val startTime = time.substringBefore(dash).trim()
-    // берем время конца и убираем из него пробельные символы
-    val endTime = time.substringAfter(dash).trim()
-    // получем дату и время начала события
-    val formattedStart = "$workDayDate $startTime"
-    // получем дату и время конца события
-    val formattedEnd = "$workDayDate $endTime"
-    // задаем формат представления даты и времени
-    val format = SimpleDateFormat("dd.MM.yyyy HH:mm")
-
-    return Lesson.Time(
-        // время начала этого элемента расписания разбираем по формату
-        start = format.parse(formattedStart),
-        // время конца этого элемента расписания разбираем по формату
-        end = format.parse(formattedEnd)
-    )
 }
 
 // очистить название дисциплины

@@ -1,7 +1,6 @@
 package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
-import java.text.SimpleDateFormat
 
 // разобрать документ с расписанием заочного отделения
 fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
@@ -20,18 +19,6 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                 // то текущий день - это день текущей строки
                 currentDay = rowDay
             }
-            // стандартизируем черточки, заменяем в строке времени точки на двоеточие при разнообразии
-            val time = standardizeDashes(text = row.tableCells[2].text).replace(".", ":")
-            // берем время начала и убираем из него пробельные символы
-            val startTime = time.substringBefore(dash).trim()
-            // берем время конца и убираем из него пробельные символы
-            val endTime = time.substringAfter(dash).trim()
-            // получем дату и время начала события
-            val formattedStart = "$currentDay $startTime"
-            // получем дату и время конца события
-            val formattedEnd = "$currentDay $endTime"
-            // задаем формат представления даты и времени
-            val format = SimpleDateFormat("dd.MM.yyyy HH:mm")
             // устанавливаем "каретку" на ячейку с индеком 3
             var currentCellIndex = 3
 
@@ -86,12 +73,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                         // чтобы добавился от этой строки в общий список текущего документа
                         listOf(
                             Lesson(
-                                time = Lesson.Time(
-                                    // время начала этого элемента расписания разбираем по формату
-                                    start = format.parse(formattedStart),
-                                    // время конца этого элемента расписания разбираем по формату
-                                    end = format.parse(formattedEnd)
-                                ),
+                                time = parseLessonTime(cell = row.tableCells[2], currentDay!!),
                                 // список названий групп - это имена с индексом 0 и 1
                                 groupNames = listOf(groups[0].name, groups[1].name),
                                 // название дисциплины это название поточной дисциплины
@@ -141,12 +123,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                             subjectNames.map { subjectName ->
                                 // создаем элемент расписания
                                 Lesson(
-                                    time = Lesson.Time(
-                                        // время начала этого элемента расписания разбираем по формату
-                                        start = format.parse(formattedStart),
-                                        // время конца этого элемента расписания разбираем по формату
-                                        end = format.parse(formattedEnd)
-                                    ),
+                                    time = parseLessonTime(cell = row.tableCells[2], currentDay!!),
                                     // список названий групп - это список из названия текущей группы
                                     groupNames = listOf(group.name),
                                     // название дисциплины это название дисциплины
