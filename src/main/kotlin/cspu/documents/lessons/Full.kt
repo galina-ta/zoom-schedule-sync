@@ -42,11 +42,6 @@ private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSub
     return null
 }
 
-private class CommonSubject(
-    // название дисциплины потоковой пары изначально не определено
-    val name: String
-)
-
 //получение пар из строк таблицы
 private fun parseLessons(
     rows: List<XWPFTableRow>,

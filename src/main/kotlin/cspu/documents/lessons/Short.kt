@@ -1,6 +1,7 @@
 package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
+import org.apache.poi.xwpf.usermodel.XWPFTableRow
 
 // разобрать документ с расписанием заочного отделения
 fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
@@ -21,36 +22,8 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
             }
             // устанавливаем "каретку" на ячейку с индеком 3
             var currentCellIndex = 3
-
-            // название дисциплины потоковой пары изначально не определено
-            var commonSubjectName: String? = null
-            // ширина ячейки общей пары изначально равно 0 (не посчитано)
-            var commonSubjectCellWidth = 0
-            // для каждой ячейки текущей строки, кроме первых трех
-            for (cell in row.tableCells.drop(3)) {
-                // название дисциплины - это текст текущей ячейки без пробелов в начале и конце
-                val subjectName = cell.text.trim()
-                // если название дисциплины не пустое
-                if (subjectName.isNotEmpty()) {
-                    // если название дисциплины уже найдено
-                    if (commonSubjectName != null) {
-                        // прерываем поиск поточной пары
-                        break
-                    } else {
-                        // иначе название дисциплины общей пары - это название дисциплины
-                        commonSubjectName = subjectName
-                        // получаем ширину ячейки
-                        val cellWidth = cellWidth(cell)
-                        // ищем максимальную ширину ячейки в строке:
-                        // если текущая ширина ячейки общей пары меньше ширины текущей ячейки
-                        if (commonSubjectCellWidth < cellWidth) {
-                            // устанавливаем, что ширина общей пары равна ширине текущей ячейки
-                            commonSubjectCellWidth = cellWidth
-                        }
-                    }
-                }
-            }
-
+            // ищем потоковую пару
+            val commonSubject = findCommonSubject(row, groups)
             // если все ячейки строки, кроме первых трех и последней не пустые
             if (row.tableCells.drop(3).dropLast(1).all { cell -> cell.text.isBlank() }
                 // или если все ячейки строки не содержат мою фамилию и инициалы
@@ -58,15 +31,8 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                 // то не добавляем элементы расписания из этой строки
                 emptyList()
             } else {
-                // если количество групп равно двум и
-                if (groups.size == 2 &&
-                    // название потоковой дисциплины определено и
-                    commonSubjectName != null &&
-                    // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
-                    groups[0].cellWidth < commonSubjectCellWidth &&
-                    // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
-                    groups[1].cellWidth < commonSubjectCellWidth
-                ) {
+                // если поточная пара нашлась
+                if (commonSubject != null) {
                     // если текст последней ячейки содержит мою фамилию и инициалы
                     if (containsMyNameShort(text = row.tableCells.last().text)) {
                         // возвращаем список из одного элемента расписания,
@@ -77,7 +43,7 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
                                 // список названий групп - это имена с индексом 0 и 1
                                 groupNames = listOf(groups[0].name, groups[1].name),
                                 // название дисциплины это название поточной дисциплины
-                                subjectDescription = commonSubjectName,
+                                subjectDescription = commonSubject.name,
                                 // название документа, который прикрепится к этому элементу расписания
                                 // это название текущего документа
                                 docxNames = listOf(docxName)
@@ -142,4 +108,32 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
             }
         }
     }
+}
+
+
+// ищем потоковую пару
+private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSubject? {
+    // для каждой ячейки текущей строки, кроме первых трех
+    for (cell in row.tableCells.drop(3)) {
+        // название дисциплины - это текст текущей ячейки без пробелов в начале и конце
+        val subjectName = cell.text.trim()
+        // если название дисциплины не пустое
+        if (subjectName.isNotEmpty()) {
+            // получаем ширину ячейки
+            val cellWidth = cellWidth(cell)
+            // если количество групп равно двум и
+            if (groups.size == 2 &&
+                // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
+                // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
+                groups[0].cellWidth < cellWidth && groups[1].cellWidth < cellWidth
+            ) {
+                // то создаем и возвращаем поточную дисциплину с этим именем и просчитанной шириной ячейки
+                return CommonSubject(name = subjectName)
+            } else {
+                return null
+            }
+        }
+    }
+    // если ни одна пара не нашлась в строке, то возвращаем отсутствие потоковой пары
+    return null
 }
