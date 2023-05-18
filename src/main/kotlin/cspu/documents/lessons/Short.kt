@@ -63,10 +63,8 @@ private fun parseLessons(
         var currentCellIndex = 3
         // ищем потоковую пару
         val commonSubject = findCommonSubject(row, groups)
-        // если все ячейки строки, кроме первых трех и последней не пустые
-        if (row.tableCells.drop(3).dropLast(1).all { cell -> cell.text.isBlank() }
-            // или если все ячейки строки не содержат мою фамилию и инициалы
-            || row.tableCells.all { cell -> !containsMyNameShort(cell.text) }) {
+        // определяем есть ли мои пары в строке
+        if (!hasMyLessons(row)) {
             // то не добавляем элементы расписания из этой строки
             emptyList()
         } else {
@@ -146,4 +144,13 @@ private fun parseLessons(
             }
         }
     }
+}
+
+// есть ли  мои пары в строке
+private fun hasMyLessons(row: XWPFTableRow): Boolean {
+    // отбрасываем у строки первые две и последнюю ячейки
+    // и проверяем является ли хотя бы одна из оставшихся не пустой
+    return row.tableCells.drop(3).dropLast(1).any { cell -> cell.text.isNotBlank() }
+            // и если хотя бы одна содержит мою фамилию и инициалы
+            && row.tableCells.any { cell -> containsMyNameShort(cell.text) }
 }
