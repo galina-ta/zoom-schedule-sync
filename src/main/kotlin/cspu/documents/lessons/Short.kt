@@ -70,26 +70,10 @@ private fun parseLessons(
         } else {
             // если поточная пара нашлась
             if (commonSubject != null) {
-                // если текст последней ячейки содержит мою фамилию и инициалы
-                if (containsMyNameShort(text = row.tableCells.last().text)) {
-                    // возвращаем список из одного элемента расписания,
-                    // чтобы добавился от этой строки в общий список текущего документа
-                    listOf(
-                        Lesson(
-                            time = parseLessonTime(cell = row.tableCells[2], currentDay!!),
-                            // список названий групп - это имена с индексом 0 и 1
-                            groupNames = listOf(groups[0].name, groups[1].name),
-                            // название дисциплины это название поточной дисциплины
-                            subjectDescription = commonSubject.name,
-                            // название документа, который прикрепится к этому элементу расписания
-                            // это название текущего документа
-                            docxNames = listOf(docxName)
-                        )
-                    )
-                } else {
-                    // иначе не добавляем элементы расписания из этой строки
-                    emptyList()
-                }
+                //делаем список из моей потоковой пары, если она есть
+                listOfNotNull(
+                    parseMyCommonLesson(row, currentDay!!, docxName, groups, commonSubject)
+                )
             } else {
                 // иначе, если в строке нет потоковой пары, превращаем список групп
                 // в плоский список элементов расписания
@@ -153,4 +137,32 @@ private fun hasMyLessons(row: XWPFTableRow): Boolean {
     return row.tableCells.drop(3).dropLast(1).any { cell -> cell.text.isNotBlank() }
             // и если хотя бы одна содержит мою фамилию и инициалы
             && row.tableCells.any { cell -> containsMyNameShort(cell.text) }
+}
+
+//получаем мою поточную пару из строки
+private fun parseMyCommonLesson(
+    row: XWPFTableRow,
+    workDayDate: String,
+    docxName: String,
+    groups: List<Group>,
+    commonSubject: CommonSubject
+): Lesson? {
+    // если текст последней ячейки содержит мою фамилию и инициалы
+    return if (containsMyNameShort(text = row.tableCells.last().text)) {
+        // возвращаем список из одного элемента расписания,
+        // чтобы добавился от этой строки в общий список текущего документа
+        Lesson(
+            time = parseLessonTime(cell = row.tableCells[2], workDayDate),
+            // список названий групп - это имена с индексом 0 и 1
+            groupNames = listOf(groups[0].name, groups[1].name),
+            // название дисциплины это название поточной дисциплины
+            subjectDescription = commonSubject.name,
+            // название документа, который прикрепится к этому элементу расписания
+            // это название текущего документа
+            docxNames = listOf(docxName)
+        )
+    } else {
+        // иначе возвращаем отсутствие пары
+        null
+    }
 }
