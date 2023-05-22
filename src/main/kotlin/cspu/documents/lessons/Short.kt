@@ -18,23 +18,23 @@ fun parseShort(document: XWPFDocument, docxName: String): List<Lesson> {
 // ищем потоковую пару
 private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSubject? {
     // для каждой ячейки текущей строки, кроме первых трех
-    for (cell in row.tableCells.drop(3)) {
+    row.tableCells.drop(3).forEach { cell ->
         // название дисциплины - это текст текущей ячейки без пробелов в начале и конце
         val subjectName = cell.text.trim()
         // если название дисциплины не пустое
         if (subjectName.isNotEmpty()) {
             // получаем ширину ячейки
-            val cellWidth = cellWidth(cell)
+            val subjectCellWidth = cellWidth(cell)
             // если количество групп равно двум и
-            if (groups.size == 2 &&
+            return if (groups.size == 2 &&
                 // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
                 // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
-                groups[0].cellWidth < cellWidth && groups[1].cellWidth < cellWidth
+                groups[0].cellWidth < subjectCellWidth && groups[1].cellWidth < subjectCellWidth
             ) {
                 // то создаем и возвращаем поточную дисциплину с этим именем и просчитанной шириной ячейки
-                return CommonSubject(name = subjectName)
+                CommonSubject(name = subjectName)
             } else {
-                return null
+                null
             }
         }
     }
@@ -48,34 +48,44 @@ private fun parseLessons(
     docxName: String,
     groups: List<Group>
 ): List<Lesson> {
-// текущая дата изначально не задана
-    var currentDay: String? = null
-// возвращаем преобразованный список строк таблицы в плоский список элементов расписания
+    // текущая дата изначально не задана
+    var currentDate: String? = null
+    // возвращаем преобразованный список строк таблицы в плоский список элементов расписания
     return rows.flatMap { row ->
         // пробуем получить дату из текущей строки
         val rowDay = row.tableCells[1].text.trim()
         // если дата указана для этой строки (первая строка текущего дня)
         if (rowDay.isNotBlank()) {
             // то текущий день - это день текущей строки
-            currentDay = rowDay
+            currentDate = rowDay
         }
+        parseLessonsWithSameTime(row, workDayDate = currentDate!!, docxName, groups)
+    }
+}
 
-        // ищем потоковую пару
-        val commonSubject = findCommonSubject(row, groups)
-        // определяем есть ли мои пары в строке
-        if (!hasMyLessons(row)) {
-            // то не добавляем элементы расписания из этой строки
-            emptyList()
+// получение всех пар, которые идут одновременно
+private fun parseLessonsWithSameTime(
+    row: XWPFTableRow,
+    workDayDate: String,
+    docxName: String,
+    groups: List<Group>
+): List<Lesson> {
+    // ищем потоковую пару
+    val commonSubject = findCommonSubject(row, groups)
+    // определяем есть ли мои пары в строке
+    return if (!hasMyLessons(row)) {
+        // то не добавляем элементы расписания из этой строки
+        emptyList()
+    } else {
+        // если поточная пара нашлась
+        if (commonSubject != null) {
+            //делаем список из моей потоковой пары, если она есть
+            listOfNotNull(
+                parseMyCommonLesson(row, workDayDate, docxName, groups, commonSubject)
+            )
         } else {
-            // если поточная пара нашлась
-            if (commonSubject != null) {
-                //делаем список из моей потоковой пары, если она есть
-                listOfNotNull(
-                    parseMyCommonLesson(row, currentDay!!, docxName, groups, commonSubject)
-                )
-            } else {
-                parseMyGroupLessons(groups, row, currentDay!!, docxName)
-            }
+            //разбираем список пар отдельных групп
+            parseMyGroupLessons(groups, row, workDayDate, docxName)
         }
     }
 }
@@ -155,7 +165,14 @@ private fun parseMyGroupLessons(
         // перевести "каретку" в следующую ячейку
         currentCellIndex += 1
         //описание дисциплины преобразуем в пары
-        subjectDescriptionsToLessons(group, subjectDescriptions, row, docxName, workDayDate, teacherCell)
+        subjectDescriptionsToLessons(
+            group,
+            subjectDescriptions,
+            row,
+            docxName,
+            workDayDate,
+            teacherCell
+        )
     }
 }
 
