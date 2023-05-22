@@ -1,6 +1,7 @@
 package cspu.documents.lessons
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument
+import org.apache.poi.xwpf.usermodel.XWPFTableCell
 import org.apache.poi.xwpf.usermodel.XWPFTableRow
 
 // разобрать документ с расписанием заочного отделения
@@ -73,7 +74,7 @@ private fun parseLessons(
                     parseMyCommonLesson(row, currentDay!!, docxName, groups, commonSubject)
                 )
             } else {
-                parseMyGroupLessons(groups,row, currentDay!!, docxName)
+                parseMyGroupLessons(groups, row, currentDay!!, docxName)
             }
         }
     }
@@ -115,19 +116,20 @@ private fun parseMyCommonLesson(
         null
     }
 }
+
 // разбираем список пар отдельных групп
 private fun parseMyGroupLessons(
     groups: List<Group>,
     row: XWPFTableRow,
-    currentDay: String,
+    workDayDate: String,
     docxName: String
-): List<Lesson>{
+): List<Lesson> {
     // устанавливаем "каретку" на ячейку с индеком 3
     var currentCellIndex = 3
     // возвращаем список групп, превращенный в плоский список элементов расписания
     return groups.flatMap { group ->
         // список названий дисциплин - это изначально пустой изменяемый список
-        val subjectNames = mutableListOf<String>()
+        val subjectDescriptions = mutableListOf<String>()
         // изначально ширина ячеек дисциплин текущей группы равна 0
         var currentSubjectCellsWidth = 0
         // пока эта ширина меньше ширины ячейки текущей группы
@@ -138,39 +140,53 @@ private fun parseMyGroupLessons(
             currentSubjectCellsWidth += cellWidth(cell = currentCell)
             // название дисциплины это текст текущей ячейки
             // без пробельных символов в начале и конце
-            val subjectName = currentCell.text.trim()
+            val subjectDescription = currentCell.text.trim()
             // если название дисциплины не состоит только из пробельных символов
-            if (subjectName.isNotBlank()) {
+            if (subjectDescription.isNotBlank()) {
                 // добавить название дисциплины в список дисциплин текущей группы
-                subjectNames.add(subjectName)
+                subjectDescriptions.add(subjectDescription)
             }
             // перевести "каретку" в следующую ячейку
             currentCellIndex += 1
         }
 
         // необработанная ячейка с преподом - это текст ячейки, на которую указывает "каретка"
-        val teacherRaw = row.tableCells[currentCellIndex].text
+        val teacherCell = row.tableCells[currentCellIndex]
         // перевести "каретку" в следующую ячейку
         currentCellIndex += 1
-        // если мое имя в ячейке с преподом
-        if (containsMyNameShort(text = teacherRaw)) {
-            // преобразуем список дисциплин в список элементов расписания
-            subjectNames.map { subjectName ->
-                // создаем элемент расписания
-                Lesson(
-                    time = parseLessonTime(cell = row.tableCells[2], currentDay),
-                    // список названий групп - это список из названия текущей группы
-                    groupNames = listOf(group.name),
-                    // название дисциплины это название дисциплины
-                    subjectDescription = subjectName,
-                    // название документа, который прикрепится к этому элементу расписания
-                    // это название текущего документа
-                    docxNames = listOf(docxName)
-                )
-            }
-        } else {
-            // иначе не добавляем элементы расписания из этой строки
-            emptyList()
+        //описание дисциплины преобразуем в пары
+        subjectDescriptionsToLessons(group, subjectDescriptions, row, docxName, workDayDate, teacherCell)
+    }
+}
+
+// преобразуем описание дисциплин в пары
+private fun subjectDescriptionsToLessons(
+    group: Group,
+    subjectDescriptions: List<String>,
+    row: XWPFTableRow,
+    docxName: String,
+    workDayDate: String,
+    teacherCell: XWPFTableCell
+): List<Lesson> {
+    // возвращаем результат преобразования по правилу
+    // если мое имя в ячейке с преподом
+    return if (containsMyNameShort(text = teacherCell.text)) {
+        // преобразуем список дисциплин в список пар
+        subjectDescriptions.map { subjectDescription ->
+            // создаем пару
+            Lesson(
+                time = parseLessonTime(cell = row.tableCells[2], workDayDate),
+                // список названий групп - это список из названия текущей группы
+                groupNames = listOf(group.name),
+                // название дисциплины это название дисциплины
+                subjectDescription = subjectDescription,
+                // название документа, который прикрепится к этому элементу расписания
+                // это название текущего документа
+                docxNames = listOf(docxName)
+            )
         }
+    } else {
+        // иначе не добавляем элементы расписания из этой строки
+        emptyList()
     }
 }

@@ -167,7 +167,7 @@ private class GroupLessonsProvider(
                 }
             }
             //преобразуем описание дисциплин в пары
-            subjectDescriptionToLesson(group, mySubjectDescriptions)
+            subjectDescriptionsToLessons(group, mySubjectDescriptions)
         }
     }
 
@@ -205,7 +205,7 @@ private class GroupLessonsProvider(
     }
 
     // создаем описание дисциплины
-    private fun subjectDescriptionToLesson(
+    private fun subjectDescriptionsToLessons(
         group: Group,
         mySubjectDescriptions: List<String>
     ): List<Lesson> {
