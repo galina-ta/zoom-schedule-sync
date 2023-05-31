@@ -3,12 +3,14 @@ package cspu.documents.lessons
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
 
+//возвращает загруженный список всех пар (очных и заочных)
 fun loadLessons(usualDir: File, sessionDir: File): List<Lesson>{
     // преобразуем список файлов в плоский список элементов расписания (в общее расписание)
     val usualLessons = usualDir.listFiles()!!.flatMap { docxFile ->
         // если текущий файл не папка
         if (!docxFile.isDirectory) {
-            // получаем документв формате библиотеки poi, передав ей возможность считать содержание файла
+            // получаем документв формате библиотеки poi,
+                // передав ей возможность считать содержание файла
             val document = XWPFDocument(docxFile.inputStream())
             // получаем все ячейки первой строки первого документа
             val groupCells = document.tables[0].rows[0].tableCells
@@ -31,8 +33,12 @@ fun loadLessons(usualDir: File, sessionDir: File): List<Lesson>{
             emptyList()
         }
     }
+    // преобразуем список файлов в плоский список элементов расписания (в общее расписание)
     val sessionLessons = sessionDir.listFiles()!!.flatMap { docxFile ->
+        // получаем документв формате библиотеки poi,
+        // передав ей возможность считать содержание файла
         val document = XWPFDocument(docxFile.inputStream())
+        // разбираем документ как расписание сессии и добавляем в общее расписание
         parseFullSession(document, docxName = docxFile.name)
     }
     // получение расписания без дублирования
