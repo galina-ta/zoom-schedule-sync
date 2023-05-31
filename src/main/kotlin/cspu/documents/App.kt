@@ -10,7 +10,8 @@ import java.io.File
 fun main() {
     // указываем путь к файлам
     val asuDir = File("C:\\Users\\1255865\\Documents\\кафедра\\АСУ_Галина")
-    val brsTemplateFile = File(asuDir, "БРС_шаблон.xlsm")
+    val ratingBrsTemplateFile = File(asuDir, "БРС_шаблон_рейтинг.xlsm")
+    val practiceBrsTemplateFile = File(asuDir, "БРС_шаблон_практика.xlsm")
     val leoTemplateFile = File(asuDir, "ЛЭО_шаблон.xlsx")
     val lessonsDir = File(asuDir, "Аудиторные")
     val sessionDir = File(lessonsDir, "Сессия ОФ")
@@ -19,9 +20,9 @@ fun main() {
     val practicesDir = File(asuDir, "Практика")
     val practices = loadPractices(practicesDir)
     practices.forEach { practice ->
-        generatePractice(practice, brsTemplateFile, leoTemplateFile)
+        generatePractice(practice, practiceBrsTemplateFile, leoTemplateFile)
     }
-    generateLessonsRating(lessonsRatingDir, brsTemplateFile)
+    generateLessonsRating(lessonsRatingDir, ratingBrsTemplateFile)
     // экспортируем расписание в google-календарь
     exportInGoogleCalendar(lessons, practices)
 }

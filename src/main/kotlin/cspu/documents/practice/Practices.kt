@@ -112,9 +112,7 @@ fun loadPractices(dir: File): List<Practice> {
                                 groupName,
                                 studentsNames,
                                 practiceName,
-                                rpp.taskTypes,
-                                variationTaskType = "Индивидуальные задания",
-                                customFinalTaskName = null
+                                rpp.taskTypes
                             )
                             // иначе ничего не добавлять
                         } else {

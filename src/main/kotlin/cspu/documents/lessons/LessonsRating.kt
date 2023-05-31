@@ -26,9 +26,7 @@ fun generateLessonsRating(dir: File, brsTemplateFile: File) {
                     groupName,
                     studentNames,
                     name = classDir.name,
-                    taskTypes = listOf("1", "2", "3", "4", "5", "6", "7"),
-                    variationTaskType = "B1",
-                    customFinalTaskName = "Контрольное задание"
+                    taskTypes = emptyList()
                 )
                 val brsFile = File(
                     generatedDir,
