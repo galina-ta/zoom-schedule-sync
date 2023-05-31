@@ -28,7 +28,7 @@ private fun findCommonSubject(row: XWPFTableRow, groups: List<Group>): CommonSub
             // если количество групп равно двум и
             return if (groups.size == 2 &&
                 // ширина ячейки группы с индеком 0 меньше ширины ячейки потоковой дисциплины и
-                // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины и
+                // ширина ячейки группы с индеком 1 меньше ширины ячейки потоковой дисциплины
                 groups[0].cellWidth < subjectCellWidth && groups[1].cellWidth < subjectCellWidth
             ) {
                 // то создаем и возвращаем поточную дисциплину с этим именем и просчитанной шириной ячейки
@@ -59,6 +59,9 @@ private fun parseLessons(
             // то текущий день - это день текущей строки
             currentDate = rowDay
         }
+        //функция принимает значения строки, дату рабочего дня в которую мы передаем текущую дату,
+        // если она равна null, то завершаем программу с ошибкой,
+        // также передаем название документа и список групп
         parseLessonsWithSameTime(row, workDayDate = currentDate!!, docxName, groups)
     }
 }
